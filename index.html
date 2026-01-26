@@ -678,6 +678,7 @@
             align-items: center;
             justify-content: center;
             min-height: 100px;
+            position: relative;
         }
         
         .manual-item:hover {
@@ -1385,22 +1386,6 @@
         </header>
         
         <div class="container">
-            <!-- Quick Actions -->
-            <div class="quick-actions">
-                <button class="quick-action" onclick="showPage('fdr-dps-rates')">
-                    <i class="fas fa-percentage"></i> Deposit Rates
-                </button>
-                <button class="quick-action" onclick="showPage('bbl-loan-rates')">
-                    <i class="fas fa-hand-holding-usd"></i> Loan Rates
-                </button>
-                <button class="quick-action" onclick="showPage('branch-manual')">
-                    <i class="fas fa-book"></i> Branch Manual
-                </button>
-                <button class="quick-action" onclick="showPage('cost-center')">
-                    <i class="fas fa-calculator"></i> Cost Center
-                </button>
-            </div>
-            
             <div class="main-content">
                 <!-- Products Section -->
                 <div class="section-card">
@@ -1663,12 +1648,12 @@
                 <p><strong>Variable Rates:</strong> Interest rates for all retail loans are variable. Personal and Auto loan rates change every 1 year.</p>
             </div>
             
-            <!-- NEW: Loan Type Navigation -->
+            <!-- Fixed Loan Type Navigation -->
             <div class="loan-types">
-                <button class="loan-type-btn active" data-loan="personal">Personal Loan</button>
-                <button class="loan-type-btn" data-loan="auto">Auto Loan</button>
-                <button class="loan-type-btn" data-loan="home">Home Loan</button>
-                <button class="loan-type-btn" data-loan="digital">Digital & Secured Loans</button>
+                <button class="loan-type-btn active" data-loan="personal" onclick="updateLoanType('personal')">Personal Loan</button>
+                <button class="loan-type-btn" data-loan="auto" onclick="updateLoanType('auto')">Auto Loan</button>
+                <button class="loan-type-btn" data-loan="home" onclick="updateLoanType('home')">Home Loan</button>
+                <button class="loan-type-btn" data-loan="digital" onclick="updateLoanType('digital')">Digital & Secured Loans</button>
             </div>
             
             <!-- Personal Loan Tab -->
@@ -1680,16 +1665,72 @@
                             <thead>
                                 <tr>
                                     <th>Segment</th>
-                                    <th>Interest Rate</th>
+                                    <th>New (Margin / Rate)</th>
+                                    <th>Top-up (Margin / Rate)</th>
+                                    <th>Takeover (Margin / Rate)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>EB Elite</td><td class="highlight">11.68%</td></tr>
-                                <tr><td>EB- G1, Pro</td><td class="highlight">12.18%</td></tr>
-                                <tr><td>G2</td><td class="highlight">12.68%</td></tr>
-                                <tr><td>Govt. Employee (Grade 1–9)</td><td class="highlight">11.68%</td></tr>
-                                <tr><td>Govt. Employee (Grade 10–12)</td><td class="highlight">12.18%</td></tr>
-                                <tr><td>BBL Staff Commercial PL</td><td class="highlight">11.68%</td></tr>
+                                <tr>
+                                    <td>EB Elite</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>EB- G1, Pro</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                </tr>
+                                <tr>
+                                    <td>G2</td>
+                                    <td class="highlight">3.00% / 12.68%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>Govt. Employee (Grade 1–9)</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>Govt. Employee (Grade 10–12)</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                </tr>
+                                <tr>
+                                    <td>Govt. Employee (Grade 13 & below)</td>
+                                    <td class="highlight">3.00% / 12.68%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>Teachers, Doctors, Bankers</td>
+                                    <td class="highlight">3.00% / 12.68%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>BBL Staff Commercial PL</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>Non-EB: Category C</td>
+                                    <td class="highlight">3.00% / 12.68%</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">3.00% / 12.68%</td>
+                                </tr>
+                                <tr>
+                                    <td>Businessman and Landlord</td>
+                                    <td class="highlight">3.00% / 12.68%</td>
+                                    <td>N/A</td>
+                                    <td>N/A</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1697,22 +1738,31 @@
             </div>
             
             <!-- Auto Loan Tab -->
-            <div id="auto-tab" class="tab-content">
+            <div id="auto-tab" class="tab-content" style="display: none;">
                 <div class="content-card">
                     <h3><i class="fas fa-car"></i> Auto Loan Rates</h3>
+                    
+                    <div class="info-box" style="margin-bottom: 20px;">
+                        <h3><i class="fas fa-info-circle"></i> Segment Information</h3>
+                        <p><strong>Segment A:</strong> Govt employee, EB Elite, BRAC Family, BBL Staff</p>
+                        <p><strong>Segment B:</strong> EB G1 & G2, Landlord & Businessman</p>
+                        <p><strong>Segment C & Mariner</strong></p>
+                        <p><strong>Freelance and Others</strong></p>
+                    </div>
+                    
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Segment</th>
+                                    <th>Margin</th>
                                     <th>Interest Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>Segment A</td><td class="highlight">11.18%</td></tr>
-                                <tr><td>Segment B</td><td class="highlight">11.43%</td></tr>
-                                <tr><td>Segment C & Mariner</td><td class="highlight">11.68%</td></tr>
-                                <tr><td>Freelance and Others</td><td class="highlight">12.18%</td></tr>
+                                <tr><td>1.50%</td><td class="highlight">11.18%</td></tr>
+                                <tr><td>1.75%</td><td class="highlight">11.43%</td></tr>
+                                <tr><td>2.00%</td><td class="highlight">11.68%</td></tr>
+                                <tr><td>2.50%</td><td class="highlight">12.18%</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1720,7 +1770,7 @@
             </div>
             
             <!-- Home Loan Tab -->
-            <div id="home-tab" class="tab-content">
+            <div id="home-tab" class="tab-content" style="display: none;">
                 <div class="content-card">
                     <h3><i class="fas fa-home"></i> Home Loan Rates</h3>
                     <div class="table-wrapper">
@@ -1728,22 +1778,39 @@
                             <thead>
                                 <tr>
                                     <th>Segment</th>
-                                    <th>Interest Rate</th>
+                                    <th>New (Margin / Rate)</th>
+                                    <th>Takeover (Margin / Rate)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>Segment A</td><td class="highlight">11.18%</td></tr>
-                                <tr><td>Segment B</td><td class="highlight">11.43%</td></tr>
-                                <tr><td>Segment C & Mariner</td><td class="highlight">11.68%</td></tr>
-                                <tr><td>Freelance, NRB & Others</td><td class="highlight">12.18%</td></tr>
+                                <tr>
+                                    <td>Segment A: Govt employee, EB Elite, BRAC Family, BBL Staff</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>Segment B: EB G1 & G2, Landlord & Businessman</td>
+                                    <td class="highlight">1.75% / 11.43%</td>
+                                    <td class="highlight">1.50% / 11.18%</td>
+                                </tr>
+                                <tr>
+                                    <td>Segment C & Mariner</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                    <td class="highlight">1.75% / 11.43%</td>
+                                </tr>
+                                <tr>
+                                    <td>Freelance, NRB & Others</td>
+                                    <td class="highlight">2.50% / 12.18%</td>
+                                    <td class="highlight">2.00% / 11.68%</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
             
-            <!-- NEW: Digital & Secured Loans Tab -->
-            <div id="digital-tab" class="tab-content">
+            <!-- Digital & Secured Loans Tab -->
+            <div id="digital-tab" class="tab-content" style="display: none;">
                 <div class="content-card">
                     <h3><i class="fas fa-mobile-alt"></i> Digital & Secured Loan Rates</h3>
                     <div class="table-wrapper">
@@ -1791,14 +1858,14 @@
             </div>
             
             <!-- EMI Calculator Tab -->
-            <div id="emi-tab" class="tab-content">
+            <div id="emi-tab" class="tab-content" style="display: none;">
                 <div class="calculator-card">
                     <h3><i class="fas fa-calculator"></i> EMI Calculator</h3>
                     
-                    <!-- NEW: Loan Type Selection -->
+                    <!-- Fixed Loan Type Selection -->
                     <div class="input-group">
                         <label for="loan-type">Loan Type</label>
-                        <select id="loan-type-select" class="slider">
+                        <select id="loan-type-select" class="slider" onchange="updateEMILoanType(this.value)">
                             <option value="personal">Personal Loan</option>
                             <option value="auto">Auto Loan</option>
                             <option value="home">Home Loan</option>
@@ -1877,7 +1944,7 @@
                 </div>
             </div>
             
-            <!-- NEW: Tab Navigation for Loan Types -->
+            <!-- Fixed Tab Navigation for Loan Types -->
             <div class="tab-nav">
                 <button class="tab active" onclick="showLoanTab('personal')">Personal Loan</button>
                 <button class="tab" onclick="showLoanTab('auto')">Auto Loan</button>
@@ -1906,6 +1973,7 @@
                 <p>Fixed deposits for both <strong>Personal</strong> and <strong>SME/Corporate</strong> clients follow similar interest structures based on tenure and amount. Rates are applicable from January 02, 2026.</p>
             </div>
             
+            <!-- Fixed Deposit Tab Navigation -->
             <div class="tab-nav">
                 <button class="tab active" onclick="showDepositTab('fd')">Fixed Deposit</button>
                 <button class="tab" onclick="showDepositTab('savings')">Savings</button>
@@ -1913,11 +1981,13 @@
                 <button class="tab" onclick="showDepositTab('calc')">Calculator</button>
                 <button class="tab" onclick="showDepositTab('policies')">Policies</button>
             </div>
-            
+
             <!-- Fixed Deposit Tab -->
             <div id="fd-tab" class="tab-content active">
+                <!-- Standard FD Rates -->
                 <div class="content-card">
-                    <h3><i class="fas fa-chart-line"></i> Fixed Deposit Rates</h3>
+                    <h3><i class="fas fa-chart-line"></i> Standard FD Rates</h3>
+                    <p style="margin-bottom: 15px; color: var(--text-light);"><i class="fas fa-info-circle"></i> Interest after Maturity (Personal & Corporate)</p>
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead>
@@ -1925,24 +1995,49 @@
                                     <th>Tenor</th>
                                     <th>1 Lac - < 1 Cr</th>
                                     <th>1 Cr - < 5 Cr</th>
-                                    <th>5 Cr & Above</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>30 Days</td><td class="highlight">3.00%</td><td class="highlight">5.00%</td><td class="highlight">6.00%</td></tr>
-                                <tr><td>90 - 150 Days</td><td class="highlight">9.00%</td><td class="highlight">9.25%</td><td class="highlight">9.50%</td></tr>
-                                <tr><td>12 - 18 Months</td><td class="highlight">9.50%</td><td class="highlight">9.50%</td><td class="highlight">9.75%</td></tr>
-                                <tr><td>24 & 36 Months</td><td class="highlight">9.00%</td><td class="highlight">9.00%</td><td class="highlight">9.00%</td></tr>
+                                <tr><td>30 Days</td><td class="highlight">3.00%</td><td class="highlight">5.00%</td></tr>
+                                <tr><td>90 - 150 Days</td><td class="highlight">9.00%</td><td class="highlight">9.25%</td></tr>
+                                <tr><td>12 - 18 Months</td><td class="highlight">9.50%</td><td class="highlight">9.50%</td></tr>
+                                <tr><td>24 & 36 Months</td><td class="highlight">9.00%</td><td class="highlight">9.00%</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                
+                <!-- Retail Interest First FD -->
+                <div class="content-card">
+                    <h3><i class="fas fa-money-bill-wave"></i> Retail Interest First FD</h3>
+                    <p style="margin-bottom: 15px; color: var(--text-light);"><i class="fas fa-info-circle"></i> Interest paid at the beginning of the tenure</p>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tenor</th>
+                                    <th>Interest Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>6 Months</td><td class="highlight">9.00%</td></tr>
+                                <tr><td>12 Months</td><td class="highlight">8.50%</td></tr>
+                                <tr><td>24 Months</td><td class="highlight">8.00%</td></tr>
+                                <tr><td>36 Months</td><td class="highlight">7.00%</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="info-box" style="margin-top: 15px;">
+                        <p><i class="fas fa-asterisk"></i> Rates applicable for deposits above BDT 1 Lac</p>
                     </div>
                 </div>
             </div>
             
             <!-- Savings Tab -->
-            <div id="savings-tab" class="tab-content">
+            <div id="savings-tab" class="tab-content" style="display: none;">
+                <!-- Regular & Senior Citizen Savings -->
                 <div class="content-card">
-                    <h3><i class="fas fa-piggy-bank"></i> Savings Account Rates</h3>
+                    <h3><i class="fas fa-piggy-bank"></i> Regular & Senior Citizen Savings</h3>
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead>
@@ -1953,12 +2048,79 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td rowspan="3">Regular Savings</td><td>5 Cr & above</td><td class="highlight">2.50%</td></tr>
-                                <tr><td>1 Cr - < 5 Cr</td><td class="highlight">2.00%</td></tr>
-                                <tr><td>25 Lac - < 1 Cr</td><td class="highlight">0.75% - 1.00%</td></tr>
-                                <tr><td rowspan="2">Senior Citizen</td><td>5 Cr & above</td><td class="highlight">3.50%</td></tr>
-                                <tr><td>1 Cr - < 5 Cr</td><td class="highlight">3.00%</td></tr>
-                                <tr><td>Future Star</td><td>Kids/Students < 18</td><td class="highlight">3.50%</td></tr>
+                                <tr>
+                                    <td rowspan="3">Regular Savings</td>
+                                    <td>5 Cr & above</td>
+                                    <td class="highlight">2.50%</td>
+                                </tr>
+                                <tr>
+                                    <td>1 Cr - < 5 Cr</td>
+                                    <td class="highlight">2.00%</td>
+                                </tr>
+                                <tr>
+                                    <td>25 Lac - < 1 Cr</td>
+                                    <td class="highlight">0.75% - 1.00%</td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">Senior Citizen (Golden Benefits)</td>
+                                    <td>5 Cr & above</td>
+                                    <td class="highlight">3.50%</td>
+                                </tr>
+                                <tr>
+                                    <td>1 Cr - < 5 Cr</td>
+                                    <td class="highlight">3.00%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Specialized Savings Products -->
+                <div class="content-card">
+                    <h3><i class="fas fa-star"></i> Specialized Savings Products</h3>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Details</th>
+                                    <th>Interest Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Future Star</td>
+                                    <td>Kids/Students < 18</td>
+                                    <td class="highlight">3.50%</td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">TARA Savings</td>
+                                    <td>Regular</td>
+                                    <td class="highlight">0.50% - 2.00%</td>
+                                </tr>
+                                <tr>
+                                    <td>TARA Premium</td>
+                                    <td class="highlight">1.00% - 2.50%</td>
+                                </tr>
+                                <tr>
+                                    <td>High Value Premium Savers</td>
+                                    <td>5-10 Lac to 3 Cr+</td>
+                                    <td class="highlight">2.00% - 6.00%</td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="2">Probashi</td>
+                                    <td>Any amount (Savings)</td>
+                                    <td class="highlight">3.00%</td>
+                                </tr>
+                                <tr>
+                                    <td>TARA Premium</td>
+                                    <td class="highlight">3.50%</td>
+                                </tr>
+                                <tr>
+                                    <td>Employee Banking</td>
+                                    <td>Depends on balance</td>
+                                    <td class="highlight">1.00% - 3.50%</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1966,9 +2128,9 @@
             </div>
             
             <!-- DPS Tab -->
-            <div id="dps-tab" class="tab-content">
+            <div id="dps-tab" class="tab-content" style="display: none;">
                 <div class="content-card">
-                    <h3><i class="fas fa-retirement"></i> DPS Rates</h3>
+                    <h3><i class="fas fa-retirement"></i> DPS Interest Rates</h3>
                     <div class="table-wrapper">
                         <table class="data-table">
                             <thead>
@@ -1985,11 +2147,23 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Additional Benefits -->
+                    <div class="info-box" style="margin-top: 20px;">
+                        <h3><i class="fas fa-gift"></i> Additional Benefits</h3>
+                        <ul style="padding-left: 20px; margin: 10px 0;">
+                            <li><strong>Loan Facility:</strong> 90% of deposited amount (95% for TARA customers)</li>
+                            <li><strong>Tax Rebate:</strong> Available as per government regulations</li>
+                            <li><strong>Flexible Tenure:</strong> 3 to 10 years</li>
+                            <li><strong>Monthly/Quarterly/Yearly</strong> deposit options</li>
+                            <li><strong>Premature withdrawal</strong> facility with applicable terms</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             
             <!-- Calculator Tab -->
-            <div id="calc-tab" class="tab-content">
+            <div id="calc-tab" class="tab-content" style="display: none;">
                 <div class="calculator-card">
                     <h3><i class="fas fa-calculator"></i> FD Calculator</h3>
                     
@@ -2035,10 +2209,10 @@
                             <div class="input-group">
                                 <label for="interest-payout">Interest Payout Frequency</label>
                                 <div class="interest-payout-options">
-                                    <div class="payout-option active" data-payout="maturity">At Maturity</div>
-                                    <div class="payout-option" data-payout="monthly">Monthly</div>
-                                    <div class="payout-option" data-payout="quarterly">Quarterly</div>
-                                    <div class="payout-option" data-payout="yearly">Yearly</div>
+                                    <div class="payout-option active" data-payout="maturity" onclick="selectPayoutOption(this)">At Maturity</div>
+                                    <div class="payout-option" data-payout="monthly" onclick="selectPayoutOption(this)">Monthly</div>
+                                    <div class="payout-option" data-payout="quarterly" onclick="selectPayoutOption(this)">Quarterly</div>
+                                    <div class="payout-option" data-payout="yearly" onclick="selectPayoutOption(this)">Yearly</div>
                                 </div>
                             </div>
                             
@@ -2080,7 +2254,7 @@
             </div>
             
             <!-- NEW: Policies & Fees Tab -->
-            <div id="policies-tab" class="tab-content">
+            <div id="policies-tab" class="tab-content" style="display: none;">
                 <div class="content-card">
                     <h3><i class="fas fa-file-contract"></i> Policies & Fees</h3>
                     
@@ -2141,7 +2315,7 @@
                 <div class="manual-search-results"></div>
             </div>
             
-            <!-- NEW: Branch Manual Main Menu with Numbers -->
+            <!-- Branch Manual Main Menu with Numbers -->
             <div class="manual-grid" id="manual-grid">
                 <!-- Manual Items with Numbers -->
                 <div class="manual-item manual-detail-card" onclick="showManualDetail('Access Control')">
@@ -2296,9 +2470,6 @@
             // Initialize first time
             toggleFloatButton();
             
-            // Initialize loan type buttons
-            initLoanTypeButtons();
-            
             // Initialize manual search
             initManualSearch();
         });
@@ -2356,10 +2527,8 @@
         function initPageFeatures(pageId) {
             if (pageId === 'bbl-loan-rates') {
                 initEMICalculator();
-                initLoanTypeButtons();
             } else if (pageId === 'fdr-dps-rates') {
                 initFDCalculator();
-                initPayoutOptions();
             } else if (pageId === 'branch-manual') {
                 initManualSearch();
             }
@@ -2429,13 +2598,13 @@
         // Tab navigation for cost center
         function showCostTab(tabName) {
             // Update tab buttons
-            document.querySelectorAll('.tab').forEach(btn => {
+            document.querySelectorAll('#cost-center .tab').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
             // Show selected tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
+            document.querySelectorAll('#cost-center .tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             document.getElementById(tabName + '-tab').classList.add('active');
@@ -2444,47 +2613,35 @@
         // Tab navigation for loan rates
         function showLoanTab(tabName) {
             // Hide all loan type content
-            document.getElementById('personal-tab').classList.remove('active');
-            document.getElementById('auto-tab').classList.remove('active');
-            document.getElementById('home-tab').classList.remove('active');
-            document.getElementById('digital-tab').classList.remove('active');
-            document.getElementById('emi-tab').classList.remove('active');
+            document.getElementById('personal-tab').style.display = 'none';
+            document.getElementById('auto-tab').style.display = 'none';
+            document.getElementById('home-tab').style.display = 'none';
+            document.getElementById('digital-tab').style.display = 'none';
+            document.getElementById('emi-tab').style.display = 'none';
             
             // Update tab buttons
-            document.querySelectorAll('.tab').forEach(btn => {
+            document.querySelectorAll('#bbl-loan-rates .tab').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
             // Show selected tab content
             if (tabName === 'personal') {
-                document.getElementById('personal-tab').classList.add('active');
+                document.getElementById('personal-tab').style.display = 'block';
             } else if (tabName === 'auto') {
-                document.getElementById('auto-tab').classList.add('active');
+                document.getElementById('auto-tab').style.display = 'block';
             } else if (tabName === 'home') {
-                document.getElementById('home-tab').classList.add('active');
+                document.getElementById('home-tab').style.display = 'block';
             } else if (tabName === 'digital') {
-                document.getElementById('digital-tab').classList.add('active');
+                document.getElementById('digital-tab').style.display = 'block';
             } else if (tabName === 'emi') {
-                document.getElementById('emi-tab').classList.add('active');
+                document.getElementById('emi-tab').style.display = 'block';
                 initEMICalculator();
             }
             
             // Update loan type buttons
-            updateLoanTypeButtons(tabName);
-        }
-        
-        // Initialize loan type buttons
-        function initLoanTypeButtons() {
-            const loanTypeBtns = document.querySelectorAll('.loan-type-btn');
-            if (loanTypeBtns.length > 0) {
-                loanTypeBtns.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const loanType = this.getAttribute('data-loan');
-                        updateLoanTypeButtons(loanType);
-                        updateLoanTab(loanType);
-                    });
-                });
+            if (tabName !== 'emi') {
+                updateLoanTypeButtons(tabName);
             }
         }
         
@@ -2499,45 +2656,56 @@
             });
         }
         
-        // Update loan tab display
-        function updateLoanTab(loanType) {
-            const tabs = document.querySelectorAll('#bbl-loan-rates .tab-content');
-            tabs.forEach(tab => tab.classList.remove('active'));
+        // Update loan type from buttons
+        function updateLoanType(loanType) {
+            // Hide all tabs
+            document.getElementById('personal-tab').style.display = 'none';
+            document.getElementById('auto-tab').style.display = 'none';
+            document.getElementById('home-tab').style.display = 'none';
+            document.getElementById('digital-tab').style.display = 'none';
             
-            if (loanType === 'personal') {
-                document.getElementById('personal-tab').classList.add('active');
-            } else if (loanType === 'auto') {
-                document.getElementById('auto-tab').classList.add('active');
-            } else if (loanType === 'home') {
-                document.getElementById('home-tab').classList.add('active');
-            } else if (loanType === 'digital') {
-                document.getElementById('digital-tab').classList.add('active');
-            }
+            // Show selected tab
+            document.getElementById(loanType + '-tab').style.display = 'block';
+            
+            // Update buttons
+            updateLoanTypeButtons(loanType);
+            
+            // Update tab navigation
+            document.querySelectorAll('#bbl-loan-rates .tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.textContent.includes(loanType.charAt(0).toUpperCase() + loanType.slice(1))) {
+                    tab.classList.add('active');
+                }
+            });
         }
         
         // Tab navigation for deposit rates
         function showDepositTab(tabName) {
+            // Hide all tab content
+            document.getElementById('fd-tab').style.display = 'none';
+            document.getElementById('savings-tab').style.display = 'none';
+            document.getElementById('dps-tab').style.display = 'none';
+            document.getElementById('calc-tab').style.display = 'none';
+            document.getElementById('policies-tab').style.display = 'none';
+            
             // Update tab buttons
-            document.querySelectorAll('.tab').forEach(btn => {
+            document.querySelectorAll('#fdr-dps-rates .tab').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
             // Show selected tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
             if (tabName === 'fd') {
-                document.getElementById('fd-tab').classList.add('active');
+                document.getElementById('fd-tab').style.display = 'block';
             } else if (tabName === 'savings') {
-                document.getElementById('savings-tab').classList.add('active');
+                document.getElementById('savings-tab').style.display = 'block';
             } else if (tabName === 'dps') {
-                document.getElementById('dps-tab').classList.add('active');
+                document.getElementById('dps-tab').style.display = 'block';
             } else if (tabName === 'calc') {
-                document.getElementById('calc-tab').classList.add('active');
+                document.getElementById('calc-tab').style.display = 'block';
                 initFDCalculator();
             } else if (tabName === 'policies') {
-                document.getElementById('policies-tab').classList.add('active');
+                document.getElementById('policies-tab').style.display = 'block';
             }
         }
         
@@ -2630,6 +2798,11 @@
                     updateInterestRateForLoanType(this.value);
                 });
             }
+        }
+        
+        // Update EMI loan type
+        function updateEMILoanType(loanType) {
+            updateInterestRateForLoanType(loanType);
         }
         
         // Calculate EMI
@@ -2726,17 +2899,11 @@
             }
         }
         
-        // Initialize payout options
-        function initPayoutOptions() {
+        // Select payout option
+        function selectPayoutOption(element) {
             const payoutOptions = document.querySelectorAll('.payout-option');
-            if (payoutOptions.length > 0) {
-                payoutOptions.forEach(option => {
-                    option.addEventListener('click', function() {
-                        payoutOptions.forEach(opt => opt.classList.remove('active'));
-                        this.classList.add('active');
-                    });
-                });
-            }
+            payoutOptions.forEach(option => option.classList.remove('active'));
+            element.classList.add('active');
         }
         
         // Calculate FD
@@ -2804,21 +2971,6 @@
             
             // Scroll to results
             document.getElementById('fd-results').scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // Branch manual search
-        function searchManual() {
-            const searchTerm = document.getElementById('manual-search').value.toLowerCase();
-            const manualItems = document.querySelectorAll('.manual-item');
-            
-            manualItems.forEach(item => {
-                const title = item.querySelector('span').textContent.toLowerCase();
-                if (title.includes(searchTerm) || searchTerm === '') {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
         }
         
         // Initialize manual search
