@@ -2178,6 +2178,41 @@
             color: var(--warning-color);
             font-weight: 600;
         }
+/* Add this to your CSS if not already present */
+.admin-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: #673ab7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+    z-index: 1002;
+    display: none; /* Start hidden */
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.admin-btn:hover {
+    background: #5e35b1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.admin-btn.show {
+    display: flex !important;
+}
+
+
+
+
+
+
     </style>
 </head>
 <body>
@@ -3504,1589 +3539,2006 @@
     </div>
     
     <script>
-        // ========== ADMIN USER MANAGEMENT SYSTEM ==========
-        
-        // Default admin credentials
-        const DEFAULT_ADMIN = {
-            username: "admin",
-            password: "BBL@2026",
-            name: "System Administrator",
-            role: "admin",
-            status: "active",
-            createdAt: new Date().toISOString(),
-            lastLogin: null,
-            loginAttempts: 0
-        };
-        
-        // Initialize storage for users
-        function initUserStorage() {
-            if (!localStorage.getItem('bblUsers')) {
-                const initialUsers = [DEFAULT_ADMIN];
-                localStorage.setItem('bblUsers', JSON.stringify(initialUsers));
+            // ========== ENHANCED USER MANAGEMENT SYSTEM ==========
+            
+            // Default users that work on ALL devices
+            const DEFAULT_USERS = [
+                {
+                    username: "admin",
+                    password: "BBL@2026",
+                    name: "System Administrator",
+                    role: "admin",
+                    status: "active",
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null,
+                    loginAttempts: 0
+                },
+                {
+                    username: "manager",
+                    password: "Manager@2026",
+                    name: "Branch Manager",
+                    role: "staff",
+                    status: "active",
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null,
+                    loginAttempts: 0
+                },
+                {
+                    username: "staff",
+                    password: "Staff@2026",
+                    name: "Branch Staff",
+                    role: "staff",
+                    status: "active",
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null,
+                    loginAttempts: 0
+                },
+                {
+                    username: "user",
+                    password: "User@2026",
+                    name: "Regular User",
+                    role: "user",
+                    status: "active",
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null,
+                    loginAttempts: 0
+                }
+            ];
+            
+            // Initialize storage for users
+            function initUserStorage() {
+                // IMPORTANT: Always ensure default users exist
+                const existingUsers = JSON.parse(localStorage.getItem('bblUsers') || '[]');
+                
+                // Create a map of existing usernames for quick lookup
+                const existingUsernames = new Set(existingUsers.map(u => u.username));
+                
+                // Add default users if they don't exist
+                DEFAULT_USERS.forEach(defaultUser => {
+                    if (!existingUsernames.has(defaultUser.username)) {
+                        existingUsers.push(defaultUser);
+                    }
+                });
+                
+                // Save to localStorage
+                localStorage.setItem('bblUsers', JSON.stringify(existingUsers));
+                
+                // Initialize settings if not exist
+                if (!localStorage.getItem('bblSettings')) {
+                    const initialSettings = {
+                        maxLoginAttempts: 5,
+                        lockoutTime: 15,
+                        sessionTimeout: 30
+                    };
+                    localStorage.setItem('bblSettings', JSON.stringify(initialSettings));
+                }
             }
             
-            if (!localStorage.getItem('bblSettings')) {
-                const initialSettings = {
-                    maxLoginAttempts: 5,
-                    lockoutTime: 15,
-                    sessionTimeout: 30
-                };
-                localStorage.setItem('bblSettings', JSON.stringify(initialSettings));
-            }
-        }
-        
-        // Get all users
-        function getAllUsers() {
-            const users = JSON.parse(localStorage.getItem('bblUsers') || '[]');
-            return users;
-        }
-        
-        // Save users
-        function saveUsers(users) {
-            localStorage.setItem('bblUsers', JSON.stringify(users));
-        }
-        
-        // Get current user
-        function getCurrentUser() {
-            const username = sessionStorage.getItem('bblPortalUsername');
-            const users = getAllUsers();
-            return users.find(user => user.username === username);
-        }
-        
-        // Check if current user is admin
-        function isAdmin() {
-            const user = getCurrentUser();
-            return user && user.role === 'admin';
-        }
-        
-        // Show admin button if user is admin
-        function checkAdminStatus() {
-            if (isAdmin()) {
-                document.getElementById('admin-btn').style.display = 'flex';
-            }
-        }
-        
-        // Show admin portal
-        function showAdminPortal() {
-            if (!isAdmin()) {
-                showToast('Access Denied', 'Admin privileges required', 'error');
-                return;
+            // Get all users
+            function getAllUsers() {
+                try {
+                    const users = JSON.parse(localStorage.getItem('bblUsers') || '[]');
+                    return users;
+                } catch (e) {
+                    console.error('Error reading users from localStorage:', e);
+                    // Return default users if there's an error
+                    return DEFAULT_USERS;
+                }
             }
             
-            document.getElementById('admin-portal').style.display = 'flex';
-            loadUsers();
-            loadStatistics();
-            loadSettings();
-        }
-        
-        // Close admin portal
-        function closeAdminPortal() {
-            document.getElementById('admin-portal').style.display = 'none';
-            hideUserForm();
-        }
-        
-        // Show admin tab
-        function showAdminTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.admin-tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            // Save users
+            function saveUsers(users) {
+                localStorage.setItem('bblUsers', JSON.stringify(users));
+                
+                // IMPORTANT: Sync to all tabs/windows
+                localStorage.setItem('bblUsersLastUpdated', Date.now().toString());
+            }
             
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.admin-tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            // Get current user
+            function getCurrentUser() {
+                const username = sessionStorage.getItem('bblPortalUsername');
+                if (!username) return null;
+                
+                const users = getAllUsers();
+                return users.find(user => user.username === username);
+            }
             
-            // Show selected tab
-            document.getElementById(tabName + '-tab').classList.add('active');
+            // Check if current user is admin
+            function isAdmin() {
+                const user = getCurrentUser();
+                return user && user.role === 'admin';
+            }
             
-            // Add active class to clicked button
-            event.target.classList.add('active');
+            // Show admin button if user is admin
+            function checkAdminStatus() {
+                const adminBtn = document.getElementById('admin-btn');
+                if (!adminBtn) {
+                    console.error('Admin button not found in DOM');
+                    return;
+                }
+                
+                const user = getCurrentUser();
+                console.log('Checking admin status for user:', user);
+                
+                if (user && user.role === 'admin') {
+                    console.log('Showing admin button for admin user');
+                    adminBtn.style.display = 'flex';
+                    adminBtn.classList.add('show');
+                } else {
+                    console.log('Hiding admin button for non-admin user');
+                    adminBtn.style.display = 'none';
+                    adminBtn.classList.remove('show');
+                }
+            }
             
-            // Load tab content
-            if (tabName === 'users') {
+            // Show admin portal
+            function showAdminPortal() {
+                if (!isAdmin()) {
+                    showToast('Access Denied', 'Admin privileges required', 'error');
+                    return;
+                }
+                
+                document.getElementById('admin-portal').style.display = 'flex';
                 loadUsers();
-            } else if (tabName === 'stats') {
                 loadStatistics();
-            }
-        }
-        
-        // Load users into table
-        function loadUsers() {
-            const users = getAllUsers();
-            const tableBody = document.getElementById('users-table-body');
-            const searchQuery = document.getElementById('search-users')?.value.toLowerCase() || '';
-            
-            tableBody.innerHTML = '';
-            
-            // Filter users based on search
-            const filteredUsers = users.filter(user => {
-                if (!searchQuery) return true;
-                return (
-                    user.name.toLowerCase().includes(searchQuery) ||
-                    user.username.toLowerCase().includes(searchQuery)
-                );
-            });
-            
-            if (filteredUsers.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty-state">
-                            <i class="fas fa-user-slash"></i>
-                            <p>No users found</p>
-                        </td>
-                    </tr>
-                `;
-                return;
+                loadSettings();
             }
             
-            filteredUsers.forEach((user, index) => {
-                const row = document.createElement('tr');
-                const lastLogin = user.lastLogin ? 
-                    new Date(user.lastLogin).toLocaleString() : 'Never';
+            // Close admin portal
+            function closeAdminPortal() {
+                document.getElementById('admin-portal').style.display = 'none';
+                hideUserForm();
+            }
+            
+            // Show admin tab
+            function showAdminTab(tabName) {
+                // Hide all tabs
+                document.querySelectorAll('.admin-tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
                 
-                // Determine role badge
-                let roleBadge = '';
-                switch(user.role) {
-                    case 'admin': roleBadge = '<span class="role-badge role-admin">Admin</span>'; break;
-                    case 'staff': roleBadge = '<span class="role-badge role-staff">Staff</span>'; break;
-                    default: roleBadge = '<span class="role-badge role-user">User</span>';
-                }
+                // Remove active class from all tab buttons
+                document.querySelectorAll('.admin-tab').forEach(btn => {
+                    btn.classList.remove('active');
+                });
                 
-                // Determine status
-                let statusClass = 'status-active';
-                let statusText = 'Active';
-                if (user.status === 'inactive') {
-                    statusClass = 'status-inactive';
-                    statusText = 'Inactive';
-                } else if (user.status === 'suspended') {
-                    statusClass = 'status-suspended';
-                    statusText = 'Suspended';
-                }
+                // Show selected tab
+                document.getElementById(tabName + '-tab').classList.add('active');
                 
-                row.innerHTML = `
-                    <td>${user.name}</td>
-                    <td>${user.username}</td>
-                    <td>${roleBadge}</td>
-                    <td class="${statusClass}">${statusText}</td>
-                    <td>${lastLogin}</td>
-                    <td>
-                        <div class="user-actions">
-                            <button class="action-btn edit-btn" onclick="editUser('${user.username}')" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            ${user.username !== 'admin' ? `
-                                <button class="action-btn delete-btn" onclick="deleteUser('${user.username}')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-        
-        // Search users
-        function searchUsers() {
-            loadUsers();
-        }
-        
-        // Show user form
-        function showUserForm(user = null) {
-            const formContainer = document.getElementById('user-form-container');
-            const formTitle = document.getElementById('form-title');
-            const form = document.getElementById('user-form');
-            
-            if (user) {
-                // Edit mode
-                formTitle.textContent = 'Edit User';
-                document.getElementById('full-name').value = user.name;
-                document.getElementById('user-username').value = user.username;
-                document.getElementById('user-username').readOnly = true;
-                document.getElementById('user-role').value = user.role;
-                document.getElementById('user-id').value = user.username;
+                // Add active class to clicked button
+                event.target.classList.add('active');
                 
-                // Hide password fields for edit
-                document.getElementById('user-password').required = false;
-                document.getElementById('confirm-password').required = false;
-                document.getElementById('user-password').placeholder = "Leave empty to keep current";
-                document.getElementById('confirm-password').placeholder = "Leave empty to keep current";
-            } else {
-                // Add mode
-                formTitle.textContent = 'Add New User';
-                form.reset();
-                document.getElementById('user-username').readOnly = false;
-                document.getElementById('user-password').required = true;
-                document.getElementById('confirm-password').required = true;
-                document.getElementById('user-password').placeholder = "";
-                document.getElementById('confirm-password').placeholder = "";
-                document.getElementById('user-id').value = '';
-            }
-            
-            formContainer.style.display = 'block';
-            formContainer.scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // Hide user form
-        function hideUserForm() {
-            document.getElementById('user-form-container').style.display = 'none';
-            document.getElementById('user-form').reset();
-        }
-        
-        // Edit user
-        function editUser(username) {
-            const users = getAllUsers();
-            const user = users.find(u => u.username === username);
-            
-            if (user) {
-                showUserForm(user);
-            }
-        }
-        
-        // Delete user
-        function deleteUser(username) {
-            if (username === 'admin') {
-                showToast('Error', 'Cannot delete main admin account', 'error');
-                return;
-            }
-            
-            showConfirmation(
-                'Delete User',
-                `Are you sure you want to delete user "${username}"?`,
-                function() {
-                    const users = getAllUsers();
-                    const filteredUsers = users.filter(u => u.username !== username);
-                    saveUsers(filteredUsers);
-                    
-                    showToast('Success', 'User deleted successfully', 'success');
+                // Load tab content
+                if (tabName === 'users') {
                     loadUsers();
+                } else if (tabName === 'stats') {
+                    loadStatistics();
                 }
-            );
-        }
-        
-        // Save user (add/edit)
-        document.getElementById('user-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const userData = {
-                name: formData.get('full-name'),
-                username: formData.get('username'),
-                role: formData.get('role'),
-                status: 'active',
-                createdAt: new Date().toISOString(),
-                lastLogin: null,
-                loginAttempts: 0
-            };
-            
-            const userId = formData.get('user-id');
-            const password = formData.get('password');
-            const confirmPassword = formData.get('confirm-password');
-            
-            // Validate password for new users or when changing password
-            if (!userId || (password && password.length > 0)) {
-                if (!password || password.length < 6) {
-                    showToast('Error', 'Password must be at least 6 characters', 'error');
-                    return;
-                }
-                
-                if (password !== confirmPassword) {
-                    showToast('Error', 'Passwords do not match', 'error');
-                    return;
-                }
-                
-                userData.password = password;
             }
             
-            const users = getAllUsers();
-            
-            if (userId) {
-                // Edit existing user
-                const userIndex = users.findIndex(u => u.username === userId);
-                if (userIndex !== -1) {
-                    // Preserve password if not changing
-                    if (!password || password.length === 0) {
-                        userData.password = users[userIndex].password;
-                    }
-                    // Preserve creation date and login info
-                    userData.createdAt = users[userIndex].createdAt;
-                    userData.lastLogin = users[userIndex].lastLogin;
-                    userData.loginAttempts = users[userIndex].loginAttempts;
+            // Load users into table
+            function loadUsers() {
+                const users = getAllUsers();
+                const tableBody = document.getElementById('users-table-body');
+                const searchQuery = document.getElementById('search-users')?.value.toLowerCase() || '';
+                
+                if (!tableBody) {
+                    console.error('Users table body not found');
+                    return;
+                }
+                
+                tableBody.innerHTML = '';
+                
+                // Filter users based on search
+                const filteredUsers = users.filter(user => {
+                    if (!searchQuery) return true;
+                    return (
+                        user.name.toLowerCase().includes(searchQuery) ||
+                        user.username.toLowerCase().includes(searchQuery)
+                    );
+                });
+                
+                if (filteredUsers.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <i class="fas fa-user-slash"></i>
+                                <p>No users found</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                filteredUsers.forEach((user, index) => {
+                    const row = document.createElement('tr');
+                    const lastLogin = user.lastLogin ? 
+                        new Date(user.lastLogin).toLocaleString() : 'Never';
                     
-                    users[userIndex] = userData;
-                    showToast('Success', 'User updated successfully', 'success');
-                }
-            } else {
-                // Check if username already exists
-                if (users.some(u => u.username === userData.username)) {
-                    showToast('Error', 'Username already exists', 'error');
+                    // Determine role badge
+                    let roleBadge = '';
+                    switch(user.role) {
+                        case 'admin': roleBadge = '<span class="role-badge role-admin">Admin</span>'; break;
+                        case 'staff': roleBadge = '<span class="role-badge role-staff">Staff</span>'; break;
+                        default: roleBadge = '<span class="role-badge role-user">User</span>';
+                    }
+                    
+                    // Determine status
+                    let statusClass = 'status-active';
+                    let statusText = 'Active';
+                    if (user.status === 'inactive') {
+                        statusClass = 'status-inactive';
+                        statusText = 'Inactive';
+                    } else if (user.status === 'suspended') {
+                        statusClass = 'status-suspended';
+                        statusText = 'Suspended';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${user.name}</td>
+                        <td>${user.username}</td>
+                        <td>${roleBadge}</td>
+                        <td class="${statusClass}">${statusText}</td>
+                        <td>${lastLogin}</td>
+                        <td>
+                            <div class="user-actions">
+                                <button class="action-btn edit-btn" onclick="editUser('${user.username}')" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                ${user.username !== 'admin' ? `
+                                    <button class="action-btn delete-btn" onclick="deleteUser('${user.username}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // Search users
+            function searchUsers() {
+                loadUsers();
+            }
+            
+            // Show user form
+            function showUserForm(user = null) {
+                const formContainer = document.getElementById('user-form-container');
+                const formTitle = document.getElementById('form-title');
+                const form = document.getElementById('user-form');
+                
+                if (!formContainer || !formTitle || !form) {
+                    console.error('User form elements not found');
                     return;
                 }
                 
-                // Add new user
-                users.push(userData);
-                showToast('Success', 'User added successfully', 'success');
+                if (user) {
+                    // Edit mode
+                    formTitle.textContent = 'Edit User';
+                    document.getElementById('full-name').value = user.name;
+                    document.getElementById('user-username').value = user.username;
+                    document.getElementById('user-username').readOnly = true;
+                    document.getElementById('user-role').value = user.role;
+                    document.getElementById('user-id').value = user.username;
+                    
+                    // Hide password fields for edit
+                    document.getElementById('user-password').required = false;
+                    document.getElementById('confirm-password').required = false;
+                    document.getElementById('user-password').placeholder = "Leave empty to keep current";
+                    document.getElementById('confirm-password').placeholder = "Leave empty to keep current";
+                } else {
+                    // Add mode
+                    formTitle.textContent = 'Add New User';
+                    form.reset();
+                    document.getElementById('user-username').readOnly = false;
+                    document.getElementById('user-password').required = true;
+                    document.getElementById('confirm-password').required = true;
+                    document.getElementById('user-password').placeholder = "";
+                    document.getElementById('confirm-password').placeholder = "";
+                    document.getElementById('user-id').value = '';
+                }
+                
+                formContainer.style.display = 'block';
+                formContainer.scrollIntoView({ behavior: 'smooth' });
             }
             
-            saveUsers(users);
-            hideUserForm();
-            loadUsers();
-        });
-        
-        // Load statistics
-        function loadStatistics() {
-            const users = getAllUsers();
-            const today = new Date().toDateString();
-            
-            const totalUsers = users.length;
-            const activeUsers = users.filter(u => u.status === 'active').length;
-            const todayLogins = users.filter(u => {
-                if (!u.lastLogin) return false;
-                return new Date(u.lastLogin).toDateString() === today;
-            }).length;
-            
-            document.getElementById('total-users').textContent = totalUsers;
-            document.getElementById('active-users').textContent = activeUsers;
-            document.getElementById('today-logins').textContent = todayLogins;
-        }
-        
-        // Load settings
-        function loadSettings() {
-            const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
-            
-            document.getElementById('max-attempts').value = settings.maxLoginAttempts || 5;
-            document.getElementById('lockout-time').value = settings.lockoutTime || 15;
-            document.getElementById('session-timeout').value = settings.sessionTimeout || 30;
-        }
-        
-        // Save security settings
-        function saveSecuritySettings() {
-            const settings = {
-                maxLoginAttempts: parseInt(document.getElementById('max-attempts').value),
-                lockoutTime: parseInt(document.getElementById('lockout-time').value),
-                sessionTimeout: parseInt(document.getElementById('session-timeout').value)
-            };
-            
-            localStorage.setItem('bblSettings', JSON.stringify(settings));
-            showToast('Success', 'Security settings saved', 'success');
-        }
-        
-        // Show confirmation dialog
-        function showConfirmation(title, message, callback) {
-            document.getElementById('confirmation-title').textContent = title;
-            document.getElementById('confirmation-message').textContent = message;
-            document.getElementById('confirmation-modal').style.display = 'flex';
-            
-            window.confirmCallback = callback;
-        }
-        
-        // Hide confirmation
-        function hideConfirmation() {
-            document.getElementById('confirmation-modal').style.display = 'none';
-            window.confirmCallback = null;
-        }
-        
-        // Confirm action
-        function confirmAction() {
-            if (window.confirmCallback) {
-                window.confirmCallback();
+            // Hide user form
+            function hideUserForm() {
+                const formContainer = document.getElementById('user-form-container');
+                const form = document.getElementById('user-form');
+                
+                if (formContainer) formContainer.style.display = 'none';
+                if (form) form.reset();
             }
-            hideConfirmation();
-        }
-        
-        // Show toast notification
-        function showToast(title, message, type = 'info') {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = 'toast-' + Date.now();
             
-            const icons = {
-                success: 'fa-check-circle',
-                error: 'fa-exclamation-circle',
-                warning: 'fa-exclamation-triangle',
-                info: 'fa-info-circle'
-            };
+            // Edit user
+            function editUser(username) {
+                const users = getAllUsers();
+                const user = users.find(u => u.username === username);
+                
+                if (user) {
+                    showUserForm(user);
+                }
+            }
             
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.id = toastId;
-            toast.innerHTML = `
-                <i class="fas ${icons[type]} toast-icon"></i>
-                <div class="toast-message">
-                    <strong>${title}</strong><br>
-                    ${message}
-                </div>
-                <button class="toast-close" onclick="removeToast('${toastId}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            
-            toastContainer.appendChild(toast);
-            
-            // Trigger animation
-            setTimeout(() => {
-                toast.classList.add('show');
-            }, 10);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                removeToast(toastId);
-            }, 5000);
-        }
-        
-        // Remove toast
-        function removeToast(id) {
-            const toast = document.getElementById(id);
-            if (toast) {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
+            // Delete user
+            function deleteUser(username) {
+                if (username === 'admin') {
+                    showToast('Error', 'Cannot delete main admin account', 'error');
+                    return;
+                }
+                
+                showConfirmation(
+                    'Delete User',
+                    `Are you sure you want to delete user "${username}"?`,
+                    function() {
+                        const users = getAllUsers();
+                        const filteredUsers = users.filter(u => u.username !== username);
+                        saveUsers(filteredUsers);
+                        
+                        showToast('Success', 'User deleted successfully', 'success');
+                        loadUsers();
                     }
-                }, 300);
+                );
             }
-        }
-        
-        // ========== MODIFIED LOGIN SYSTEM ==========
-        
-        // Modified validateCredentials function to use user database
-        function validateCredentials(username, password) {
-            const users = getAllUsers();
-            const user = users.find(u => u.username === username && u.status === 'active');
             
-            if (!user) return false;
+            // Save user (add/edit)
+            document.getElementById('user-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const userData = {
+                    name: formData.get('full-name'),
+                    username: formData.get('username'),
+                    role: formData.get('role'),
+                    status: 'active',
+                    createdAt: new Date().toISOString(),
+                    lastLogin: null,
+                    loginAttempts: 0
+                };
+                
+                const userId = formData.get('user-id');
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirm-password');
+                
+                // Validate password for new users or when changing password
+                if (!userId || (password && password.length > 0)) {
+                    if (!password || password.length < 6) {
+                        showToast('Error', 'Password must be at least 6 characters', 'error');
+                        return;
+                    }
+                    
+                    if (password !== confirmPassword) {
+                        showToast('Error', 'Passwords do not match', 'error');
+                        return;
+                    }
+                    
+                    userData.password = password;
+                }
+                
+                const users = getAllUsers();
+                
+                if (userId) {
+                    // Edit existing user
+                    const userIndex = users.findIndex(u => u.username === userId);
+                    if (userIndex !== -1) {
+                        // Preserve password if not changing
+                        if (!password || password.length === 0) {
+                            userData.password = users[userIndex].password;
+                        }
+                        // Preserve creation date and login info
+                        userData.createdAt = users[userIndex].createdAt;
+                        userData.lastLogin = users[userIndex].lastLogin;
+                        userData.loginAttempts = users[userIndex].loginAttempts;
+                        
+                        users[userIndex] = userData;
+                        showToast('Success', 'User updated successfully', 'success');
+                    }
+                } else {
+                    // Check if username already exists
+                    if (users.some(u => u.username === userData.username)) {
+                        showToast('Error', 'Username already exists', 'error');
+                        return;
+                    }
+                    
+                    // Add new user
+                    users.push(userData);
+                    showToast('Success', 'User added successfully', 'success');
+                    
+                    // Show user credentials to admin
+                    setTimeout(() => {
+                        alert(`New user created successfully!\n\nUsername: ${userData.username}\nPassword: ${userData.password}\n\nShare these credentials with the user.`);
+                    }, 500);
+                }
+                
+                saveUsers(users);
+                hideUserForm();
+                loadUsers();
+            });
             
-            // Check password
-            if (user.password !== password) {
-                // Increment failed attempts
-                user.loginAttempts = (user.loginAttempts || 0) + 1;
+            // Load statistics
+            function loadStatistics() {
+                const users = getAllUsers();
+                const today = new Date().toDateString();
+                
+                const totalUsers = users.length;
+                const activeUsers = users.filter(u => u.status === 'active').length;
+                const todayLogins = users.filter(u => {
+                    if (!u.lastLogin) return false;
+                    return new Date(u.lastLogin).toDateString() === today;
+                }).length;
+                
+                const totalUsersEl = document.getElementById('total-users');
+                const activeUsersEl = document.getElementById('active-users');
+                const todayLoginsEl = document.getElementById('today-logins');
+                
+                if (totalUsersEl) totalUsersEl.textContent = totalUsers;
+                if (activeUsersEl) activeUsersEl.textContent = activeUsers;
+                if (todayLoginsEl) todayLoginsEl.textContent = todayLogins;
+            }
+            
+            // Load settings
+            function loadSettings() {
+                const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
+                
+                const maxAttemptsEl = document.getElementById('max-attempts');
+                const lockoutTimeEl = document.getElementById('lockout-time');
+                const sessionTimeoutEl = document.getElementById('session-timeout');
+                
+                if (maxAttemptsEl) maxAttemptsEl.value = settings.maxLoginAttempts || 5;
+                if (lockoutTimeEl) lockoutTimeEl.value = settings.lockoutTime || 15;
+                if (sessionTimeoutEl) sessionTimeoutEl.value = settings.sessionTimeout || 30;
+            }
+            
+            // Save security settings
+            function saveSecuritySettings() {
+                const settings = {
+                    maxLoginAttempts: parseInt(document.getElementById('max-attempts').value) || 5,
+                    lockoutTime: parseInt(document.getElementById('lockout-time').value) || 15,
+                    sessionTimeout: parseInt(document.getElementById('session-timeout').value) || 30
+                };
+                
+                localStorage.setItem('bblSettings', JSON.stringify(settings));
+                showToast('Success', 'Security settings saved', 'success');
+            }
+            
+            // Show confirmation dialog
+            function showConfirmation(title, message, callback) {
+                const modal = document.getElementById('confirmation-modal');
+                const titleEl = document.getElementById('confirmation-title');
+                const messageEl = document.getElementById('confirmation-message');
+                
+                if (modal && titleEl && messageEl) {
+                    titleEl.textContent = title;
+                    messageEl.textContent = message;
+                    modal.style.display = 'flex';
+                    window.confirmCallback = callback;
+                }
+            }
+            
+            // Hide confirmation
+            function hideConfirmation() {
+                const modal = document.getElementById('confirmation-modal');
+                if (modal) modal.style.display = 'none';
+                window.confirmCallback = null;
+            }
+            
+            // Confirm action
+            function confirmAction() {
+                if (window.confirmCallback) {
+                    window.confirmCallback();
+                }
+                hideConfirmation();
+            }
+            
+            // Show toast notification
+            function showToast(title, message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) return;
+                
+                const toastId = 'toast-' + Date.now();
+                
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.id = toastId;
+                toast.innerHTML = `
+                    <i class="fas ${icons[type]} toast-icon"></i>
+                    <div class="toast-message">
+                        <strong>${title}</strong><br>
+                        ${message}
+                    </div>
+                    <button class="toast-close" onclick="removeToast('${toastId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Trigger animation
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    removeToast(toastId);
+                }, 5000);
+            }
+            
+            // Remove toast
+            function removeToast(id) {
+                const toast = document.getElementById(id);
+                if (toast) {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }
+            }
+            
+            // ========== ENHANCED LOGIN SYSTEM ==========
+            
+            function validateCredentials(username, password) {
+                // Always ensure user storage is initialized
+                initUserStorage();
+                
+                const users = getAllUsers();
+                const user = users.find(u => u.username === username);
+                
+                if (!user) {
+                    showToast('Login Failed', 'Username not found', 'error');
+                    return false;
+                }
+                
+                if (user.status !== 'active') {
+                    showToast('Account Issue', 'Account is not active. Contact admin.', 'error');
+                    return false;
+                }
+                
+                // Check password
+                if (user.password !== password) {
+                    // Increment failed attempts
+                    user.loginAttempts = (user.loginAttempts || 0) + 1;
+                    
+                    // Update user in storage
+                    const allUsers = getAllUsers();
+                    const userIndex = allUsers.findIndex(u => u.username === username);
+                    if (userIndex !== -1) {
+                        allUsers[userIndex].loginAttempts = user.loginAttempts;
+                        
+                        // Check if user should be suspended
+                        const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
+                        const maxAttempts = settings.maxLoginAttempts || 5;
+                        
+                        if (user.loginAttempts >= maxAttempts) {
+                            allUsers[userIndex].status = 'suspended';
+                            saveUsers(allUsers);
+                            showToast('Account Suspended', 
+                                'Too many failed attempts. Contact admin.', 
+                                'error');
+                        } else {
+                            saveUsers(allUsers);
+                        }
+                    }
+                    
+                    showToast('Login Failed', 'Incorrect password', 'error');
+                    return false;
+                }
+                
+                // Reset login attempts on successful login
+                user.loginAttempts = 0;
+                user.lastLogin = new Date().toISOString();
                 
                 // Update user in storage
                 const allUsers = getAllUsers();
                 const userIndex = allUsers.findIndex(u => u.username === username);
                 if (userIndex !== -1) {
-                    allUsers[userIndex].loginAttempts = user.loginAttempts;
-                    
-                    // Check if user should be suspended
-                    const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
-                    const maxAttempts = settings.maxLoginAttempts || 5;
-                    
-                    if (user.loginAttempts >= maxAttempts) {
-                        allUsers[userIndex].status = 'suspended';
-                        showToast('Account Suspended', 
-                            'Too many failed attempts. Contact admin.', 
-                            'error');
-                    }
-                    
+                    allUsers[userIndex] = user;
                     saveUsers(allUsers);
                 }
                 
-                return false;
+                return true;
             }
             
-            // Reset login attempts on successful login
-            user.loginAttempts = 0;
-            user.lastLogin = new Date().toISOString();
+            // ========== CROSS-DEVICE USER SHARING SOLUTION ==========
+            // This function helps users copy their localStorage to other devices
             
-            // Update user in storage
-            const allUsers = getAllUsers();
-            const userIndex = allUsers.findIndex(u => u.username === username);
-            if (userIndex !== -1) {
-                allUsers[userIndex] = user;
-                saveUsers(allUsers);
-            }
-            
-            return true;
-        }
-        
-        // ========== ORIGINAL PORTAL FUNCTIONS ==========
-        // All your original functions remain here...
-        // I've kept only the modified login system and added admin functions
-        
-        // State variables
-        let loginAttempts = 0;
-        let isLockedOut = false;
-        let lockoutEndTime = null;
-        let isLoggedIn = false;
-        
-        // Check if user is already logged in
-        function checkLoginStatus() {
-            const savedLogin = sessionStorage.getItem('bblPortalLoggedIn');
-            const savedUsername = sessionStorage.getItem('bblPortalUsername');
-            
-            if (savedLogin === 'true' && savedUsername) {
-                isLoggedIn = true;
-                showPortal();
-                checkAdminStatus(); // Check if admin to show admin button
-            } else {
-                showLogin();
-            }
-        }
-        
-        // Show login page
-        function showLogin() {
-            document.getElementById('login-container').style.display = 'flex';
-            document.getElementById('portal-container').style.display = 'none';
-            updateAttemptsDisplay();
-            checkLockoutStatus();
-        }
-        
-        // Show portal after successful login
-        function showPortal() {
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('portal-container').style.display = 'block';
-            
-            // Initialize portal features
-            initPortal();
-        }
-        
-        // Initialize portal
-        function initPortal() {
-            // Initialize user storage on first load
-            initUserStorage();
-            
-            // Initialize sliders
-            initSliders();
-            
-            // Add keyboard shortcuts
-            document.addEventListener('keydown', handleKeyPress);
-            
-            // Initialize mobile nav
-            if (window.innerWidth <= 768) {
-                document.querySelector('.mobile-nav').style.display = 'flex';
-            }
-            
-            // Add scroll event for floating button
-            window.addEventListener('scroll', toggleFloatButton);
-            
-            // Initialize first time
-            toggleFloatButton();
-            
-            // Initialize manual search
-            initManualSearch();
-        }
-        
-        // Check lockout status
-        function checkLockoutStatus() {
-            const savedLockout = localStorage.getItem('bblPortalLockout');
-            
-            if (savedLockout) {
-                const lockoutData = JSON.parse(savedLockout);
-                const now = new Date().getTime();
+            function exportUserData() {
+                const users = getAllUsers();
+                const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
                 
-                if (now < lockoutData.endTime) {
-                    isLockedOut = true;
-                    lockoutEndTime = lockoutData.endTime;
-                    updateLockoutDisplay();
-                    disableLoginForm();
+                const exportData = {
+                    users: users,
+                    settings: settings,
+                    exportDate: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `bbl-portal-users-${new Date().toISOString().split('T')[0]}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                showToast('Export Successful', 'User data exported to JSON file', 'success');
+                
+                // Show instructions for other devices
+                setTimeout(() => {
+                    alert(`User data exported!\n\nTo import on another device:\n1. Save this file\n2. On the other device, go to Admin Portal\n3. Click "Import Users" button\n4. Select the exported file`);
+                }, 1000);
+            }
+            
+            function importUserData() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                
+                input.onchange = function(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const importData = JSON.parse(e.target.result);
+                            
+                            if (!importData.users || !Array.isArray(importData.users)) {
+                                throw new Error('Invalid file format');
+                            }
+                            
+                            // Merge imported users with existing users
+                            const existingUsers = getAllUsers();
+                            const existingUsernames = new Set(existingUsers.map(u => u.username));
+                            
+                            // Add imported users that don't already exist
+                            importData.users.forEach(importedUser => {
+                                if (!existingUsernames.has(importedUser.username)) {
+                                    existingUsers.push(importedUser);
+                                }
+                            });
+                            
+                            // Save merged users
+                            saveUsers(existingUsers);
+                            
+                            // Import settings if provided
+                            if (importData.settings) {
+                                localStorage.setItem('bblSettings', JSON.stringify(importData.settings));
+                            }
+                            
+                            showToast('Import Successful', 'User data imported successfully', 'success');
+                            loadUsers();
+                            loadStatistics();
+                            
+                        } catch (error) {
+                            showToast('Import Failed', 'Invalid file format: ' + error.message, 'error');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                input.click();
+            }
+            
+            // Add import/export buttons to admin panel
+            function addDataTransferButtons() {
+                const usersTab = document.getElementById('users-tab');
+                if (!usersTab) return;
+                
+                // Check if buttons already exist
+                if (document.getElementById('export-users-btn')) return;
+                
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.display = 'flex';
+                buttonContainer.style.gap = '10px';
+                buttonContainer.style.marginTop = '20px';
+                buttonContainer.style.paddingTop = '20px';
+                buttonContainer.style.borderTop = '1px solid var(--border-color)';
+                
+                buttonContainer.innerHTML = `
+                    <button class="save-btn" onclick="exportUserData()" id="export-users-btn">
+                        <i class="fas fa-file-export"></i> Export Users
+                    </button>
+                    <button class="save-btn" onclick="importUserData()" style="background: var(--secondary-color);">
+                        <i class="fas fa-file-import"></i> Import Users
+                    </button>
+                `;
+                
+                usersTab.appendChild(buttonContainer);
+            }
+            
+            // ========== ORIGINAL PORTAL FUNCTIONS (with fixes) ==========
+            
+            // State variables
+            let loginAttempts = 0;
+            let isLockedOut = false;
+            let lockoutEndTime = null;
+            let isLoggedIn = false;
+            
+            // Check if user is already logged in
+            function checkLoginStatus() {
+                const savedLogin = sessionStorage.getItem('bblPortalLoggedIn');
+                const savedUsername = sessionStorage.getItem('bblPortalUsername');
+                
+                if (savedLogin === 'true' && savedUsername) {
+                    isLoggedIn = true;
+                    showPortal();
+                    checkAdminStatus();
                 } else {
-                    // Lockout expired
-                    localStorage.removeItem('bblPortalLockout');
-                    isLockedOut = false;
-                    lockoutEndTime = null;
-                    enableLoginForm();
+                    showLogin();
                 }
             }
-        }
-        
-        // Update lockout display
-        function updateLockoutDisplay() {
-            if (isLockedOut && lockoutEndTime) {
-                const now = new Date().getTime();
-                const remainingMinutes = Math.ceil((lockoutEndTime - now) / (1000 * 60));
-                
-                document.getElementById('login-error').innerHTML = 
-                    `<i class="fas fa-exclamation-triangle"></i> Account temporarily locked. Please try again in ${remainingMinutes} minutes.`;
-                document.getElementById('login-error').classList.add('show');
-                document.getElementById('attempts-warning').style.display = 'none';
-            }
-        }
-        
-        // Disable login form
-        function disableLoginForm() {
-            document.getElementById('username').disabled = true;
-            document.getElementById('password').disabled = true;
-            document.getElementById('login-btn').disabled = true;
-            document.getElementById('login-btn').innerHTML = '<i class="fas fa-lock"></i> Account Locked';
-        }
-        
-        // Enable login form
-        function enableLoginForm() {
-            document.getElementById('username').disabled = false;
-            document.getElementById('password').disabled = false;
-            document.getElementById('login-btn').disabled = false;
-            document.getElementById('login-btn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
-            document.getElementById('login-error').classList.remove('show');
-            document.getElementById('attempts-warning').style.display = 'block';
-        }
-        
-        // Update attempts display
-        function updateAttemptsDisplay() {
-            const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
-            const maxAttempts = settings.maxLoginAttempts || 5;
-            const remainingAttempts = maxAttempts - loginAttempts;
-            document.getElementById('attempts-count').textContent = remainingAttempts;
             
-            if (remainingAttempts <= 2) {
-                document.getElementById('attempts-warning').style.color = 'var(--danger-color)';
-            } else if (remainingAttempts <= 3) {
-                document.getElementById('attempts-warning').style.color = 'var(--warning-color)';
-            } else {
-                document.getElementById('attempts-warning').style.color = 'var(--text-light)';
-            }
-        }
-        
-        // Handle login form submission
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (isLockedOut) {
-                updateLockoutDisplay();
-                return;
-            }
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            
-            // Validate credentials against user database
-            const isValid = validateCredentials(username, password);
-            
-            if (isValid) {
-                // Successful login
-                loginAttempts = 0;
-                isLoggedIn = true;
+            // Show login page
+            function showLogin() {
+                const loginContainer = document.getElementById('login-container');
+                const portalContainer = document.getElementById('portal-container');
                 
-                // Save login state
-                sessionStorage.setItem('bblPortalLoggedIn', 'true');
-                sessionStorage.setItem('bblPortalUsername', username);
+                if (loginContainer) loginContainer.style.display = 'flex';
+                if (portalContainer) portalContainer.style.display = 'none';
                 
-                // Clear any lockout
-                localStorage.removeItem('bblPortalLockout');
-                
-                // Show portal
-                showPortal();
-                
-                // Reset form
-                document.getElementById('login-form').reset();
-                document.getElementById('login-error').classList.remove('show');
-                
-                // Check admin status to show admin button
-                checkAdminStatus();
-                
-            } else {
-                // Failed login
-                loginAttempts++;
                 updateAttemptsDisplay();
+                checkLockoutStatus();
                 
-                // Show error message
-                document.getElementById('login-error').classList.add('show');
+                // Initialize user storage on login page load
+                initUserStorage();
                 
-                // Check user status
-                const users = getAllUsers();
-                const user = users.find(u => u.username === username);
+                // Auto-focus username field
+                setTimeout(() => {
+                    const usernameField = document.getElementById('username');
+                    if (usernameField) usernameField.focus();
+                }, 100);
+            }
+            
+            // Show portal after successful login
+            function showPortal() {
+                const loginContainer = document.getElementById('login-container');
+                const portalContainer = document.getElementById('portal-container');
                 
-                if (user) {
-                    if (user.status === 'suspended') {
-                        document.getElementById('login-error').innerHTML = 
-                            '<i class="fas fa-ban"></i> Account suspended. Contact administrator.';
-                        document.getElementById('login-btn').disabled = true;
-                    } else if (user.status === 'inactive') {
-                        document.getElementById('login-error').innerHTML = 
-                            '<i class="fas fa-user-slash"></i> Account is inactive. Contact administrator.';
+                if (loginContainer) loginContainer.style.display = 'none';
+                if (portalContainer) portalContainer.style.display = 'block';
+                
+                // Check admin status immediately
+                setTimeout(() => {
+                    checkAdminStatus();
+                }, 100);
+                
+                // Initialize portal features
+                initPortal();
+            }
+            
+            // Initialize portal
+            function initPortal() {
+                // Initialize sliders
+                initSliders();
+                
+                // Add keyboard shortcuts
+                document.addEventListener('keydown', handleKeyPress);
+                
+                // Initialize mobile nav
+                if (window.innerWidth <= 768) {
+                    const mobileNav = document.querySelector('.mobile-nav');
+                    if (mobileNav) mobileNav.style.display = 'flex';
+                }
+                
+                // Add scroll event for floating button
+                window.addEventListener('scroll', toggleFloatButton);
+                
+                // Initialize first time
+                toggleFloatButton();
+                
+                // Initialize manual search
+                initManualSearch();
+                
+                // Add import/export buttons to admin panel
+                addDataTransferButtons();
+            }
+            
+            // Check lockout status
+            function checkLockoutStatus() {
+                const savedLockout = localStorage.getItem('bblPortalLockout');
+                
+                if (savedLockout) {
+                    try {
+                        const lockoutData = JSON.parse(savedLockout);
+                        const now = new Date().getTime();
+                        
+                        if (now < lockoutData.endTime) {
+                            isLockedOut = true;
+                            lockoutEndTime = lockoutData.endTime;
+                            updateLockoutDisplay();
+                            disableLoginForm();
+                        } else {
+                            // Lockout expired
+                            localStorage.removeItem('bblPortalLockout');
+                            isLockedOut = false;
+                            lockoutEndTime = null;
+                            enableLoginForm();
+                        }
+                    } catch (e) {
+                        console.error('Error parsing lockout data:', e);
+                        localStorage.removeItem('bblPortalLockout');
                     }
                 }
+            }
+            
+            // Update lockout display
+            function updateLockoutDisplay() {
+                const loginError = document.getElementById('login-error');
+                const attemptsWarning = document.getElementById('attempts-warning');
                 
-                // Clear password field
-                document.getElementById('password').value = '';
-                document.getElementById('password').focus();
-                
-                // Check if max attempts reached
-                const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
-                const maxAttempts = settings.maxLoginAttempts || 5;
-                
-                if (loginAttempts >= maxAttempts) {
-                    // Set lockout
-                    const lockoutTime = settings.lockoutTime || 15;
-                    const lockoutEndTime = new Date().getTime() + (lockoutTime * 60 * 1000);
-                    localStorage.setItem('bblPortalLockout', JSON.stringify({
-                        endTime: lockoutEndTime,
-                        username: username
-                    }));
+                if (isLockedOut && lockoutEndTime && loginError) {
+                    const now = new Date().getTime();
+                    const remainingMinutes = Math.ceil((lockoutEndTime - now) / (1000 * 60));
                     
-                    isLockedOut = true;
-                    lockoutEndTime = lockoutEndTime;
-                    updateLockoutDisplay();
-                    disableLoginForm();
+                    loginError.innerHTML = 
+                        `<i class="fas fa-exclamation-triangle"></i> Account temporarily locked. Please try again in ${remainingMinutes} minutes.`;
+                    loginError.classList.add('show');
+                    if (attemptsWarning) attemptsWarning.style.display = 'none';
                 }
             }
-        });
-        
-        // Forgot password handler
-        document.getElementById('forgot-password-link').addEventListener('click', function(e) {
-            e.preventDefault();
-            showModal('Password Recovery');
-            document.getElementById('modalMessage').textContent = 'Please contact the branch administrator to reset your password.';
-        });
-        
-        // Logout function
-        function logout() {
-            document.getElementById('logoutModal').style.display = 'flex';
-        }
-        
-        function closeLogoutModal() {
-            document.getElementById('logoutModal').style.display = 'none';
-        }
-        
-        function confirmLogout() {
-            // Clear login state
-            sessionStorage.removeItem('bblPortalLoggedIn');
-            sessionStorage.removeItem('bblPortalUsername');
             
-            // Reset state
-            isLoggedIn = false;
-            loginAttempts = 0;
+            // Disable login form
+            function disableLoginForm() {
+                const usernameField = document.getElementById('username');
+                const passwordField = document.getElementById('password');
+                const loginBtn = document.getElementById('login-btn');
+                
+                if (usernameField) usernameField.disabled = true;
+                if (passwordField) passwordField.disabled = true;
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                    loginBtn.innerHTML = '<i class="fas fa-lock"></i> Account Locked';
+                }
+            }
             
-            // Close modal and show login
-            closeLogoutModal();
-            showLogin();
+            // Enable login form
+            function enableLoginForm() {
+                const usernameField = document.getElementById('username');
+                const passwordField = document.getElementById('password');
+                const loginBtn = document.getElementById('login-btn');
+                const loginError = document.getElementById('login-error');
+                const attemptsWarning = document.getElementById('attempts-warning');
+                
+                if (usernameField) usernameField.disabled = false;
+                if (passwordField) passwordField.disabled = false;
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+                }
+                if (loginError) loginError.classList.remove('show');
+                if (attemptsWarning) attemptsWarning.style.display = 'block';
+            }
             
-            // Reset form
-            document.getElementById('login-form').reset();
-            document.getElementById('login-error').classList.remove('show');
-            updateAttemptsDisplay();
+            // Update attempts display
+            function updateAttemptsDisplay() {
+                const attemptsCount = document.getElementById('attempts-count');
+                const attemptsWarning = document.getElementById('attempts-warning');
+                
+                if (!attemptsCount || !attemptsWarning) return;
+                
+                const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
+                const maxAttempts = settings.maxLoginAttempts || 5;
+                const remainingAttempts = maxAttempts - loginAttempts;
+                
+                attemptsCount.textContent = remainingAttempts;
+                
+                if (remainingAttempts <= 2) {
+                    attemptsWarning.style.color = 'var(--danger-color)';
+                } else if (remainingAttempts <= 3) {
+                    attemptsWarning.style.color = 'var(--warning-color)';
+                } else {
+                    attemptsWarning.style.color = 'var(--text-light)';
+                }
+            }
             
-            // Scroll to top
-            scrollToTop();
-        }
-        
-        // Page navigation
-        function showPage(pageId) {
-            // Show loading
-            showLoading();
-            
-            // Hide all pages
-            document.querySelectorAll('.page-container').forEach(page => {
-                page.classList.remove('active');
+            // Handle login form submission
+            document.getElementById('login-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (isLockedOut) {
+                    updateLockoutDisplay();
+                    return;
+                }
+                
+                const usernameField = document.getElementById('username');
+                const passwordField = document.getElementById('password');
+                
+                if (!usernameField || !passwordField) return;
+                
+                const username = usernameField.value.trim();
+                const password = passwordField.value;
+                
+                if (!username || !password) {
+                    showToast('Validation Error', 'Please enter both username and password', 'error');
+                    return;
+                }
+                
+                // Validate credentials against user database
+                const isValid = validateCredentials(username, password);
+                
+                if (isValid) {
+                    // Successful login
+                    loginAttempts = 0;
+                    isLoggedIn = true;
+                    
+                    // Save login state
+                    sessionStorage.setItem('bblPortalLoggedIn', 'true');
+                    sessionStorage.setItem('bblPortalUsername', username);
+                    
+                    // Clear any lockout
+                    localStorage.removeItem('bblPortalLockout');
+                    
+                    // Show portal
+                    showPortal();
+                    
+                    // Reset form
+                    this.reset();
+                    const loginError = document.getElementById('login-error');
+                    if (loginError) loginError.classList.remove('show');
+                    
+                    // Show welcome message
+                    const users = getAllUsers();
+                    const user = users.find(u => u.username === username);
+                    const welcomeName = user ? user.name : username;
+                    showToast('Login Successful', `Welcome ${welcomeName}!`, 'success');
+                    
+                    // IMPORTANT: Check admin status with delay
+                    setTimeout(() => {
+                        checkAdminStatus();
+                    }, 300);
+                    
+                } else {
+                    // Failed login
+                    loginAttempts++;
+                    updateAttemptsDisplay();
+                    
+                    // Show error message
+                    const loginError = document.getElementById('login-error');
+                    if (loginError) loginError.classList.add('show');
+                    
+                    // Check user status
+                    const users = getAllUsers();
+                    const user = users.find(u => u.username === username);
+                    
+                    if (user && loginError) {
+                        if (user.status === 'suspended') {
+                            loginError.innerHTML = 
+                                '<i class="fas fa-ban"></i> Account suspended. Contact administrator.';
+                            const loginBtn = document.getElementById('login-btn');
+                            if (loginBtn) loginBtn.disabled = true;
+                        } else if (user.status === 'inactive') {
+                            loginError.innerHTML = 
+                                '<i class="fas fa-user-slash"></i> Account is inactive. Contact administrator.';
+                        }
+                    }
+                    
+                    // Clear password field
+                    if (passwordField) {
+                        passwordField.value = '';
+                        passwordField.focus();
+                    }
+                    
+                    // Check if max attempts reached
+                    const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
+                    const maxAttempts = settings.maxLoginAttempts || 5;
+                    
+                    if (loginAttempts >= maxAttempts) {
+                        // Set lockout
+                        const lockoutTime = settings.lockoutTime || 15;
+                        const lockoutEnd = new Date().getTime() + (lockoutTime * 60 * 1000);
+                        localStorage.setItem('bblPortalLockout', JSON.stringify({
+                            endTime: lockoutEnd,
+                            username: username
+                        }));
+                        
+                        isLockedOut = true;
+                        lockoutEndTime = lockoutEnd;
+                        updateLockoutDisplay();
+                        disableLoginForm();
+                    }
+                }
             });
             
-            // Update mobile nav
-            updateMobileNav(pageId);
+            // Forgot password handler
+            document.getElementById('forgot-password-link').addEventListener('click', function(e) {
+                e.preventDefault();
+                showModal('Password Recovery');
+                const modalMessage = document.getElementById('modalMessage');
+                if (modalMessage) {
+                    modalMessage.textContent = 'Default credentials for testing:\n\nAdmin: admin / BBL@2026\nManager: manager / Manager@2026\nStaff: staff / Staff@2026\nUser: user / User@2026\n\nFor password reset, contact the branch administrator.';
+                }
+            });
             
-            // Show selected page
-            setTimeout(() => {
-                document.getElementById(pageId).classList.add('active');
+            // Logout function
+            function logout() {
+                const logoutModal = document.getElementById('logoutModal');
+                if (logoutModal) logoutModal.style.display = 'flex';
+            }
+            
+            function closeLogoutModal() {
+                const logoutModal = document.getElementById('logoutModal');
+                if (logoutModal) logoutModal.style.display = 'none';
+            }
+            
+            function confirmLogout() {
+                // Get username for goodbye message
+                const username = sessionStorage.getItem('bblPortalUsername');
+                const users = getAllUsers();
+                const user = users.find(u => u.username === username);
+                const userName = user ? user.name : username;
+                
+                // Clear login state
+                sessionStorage.removeItem('bblPortalLoggedIn');
+                sessionStorage.removeItem('bblPortalUsername');
+                
+                // Reset state
+                isLoggedIn = false;
+                loginAttempts = 0;
+                
+                // Close modal and show login
+                closeLogoutModal();
+                showLogin();
+                
+                // Reset form
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) loginForm.reset();
+                
+                const loginError = document.getElementById('login-error');
+                if (loginError) loginError.classList.remove('show');
+                
+                updateAttemptsDisplay();
+                
+                // Show goodbye message
+                showToast('Logged Out', `Goodbye ${userName}!`, 'info');
                 
                 // Scroll to top
                 scrollToTop();
+            }
+            
+            // Page navigation
+            function showPage(pageId) {
+                // Show loading
+                showLoading();
                 
-                // Initialize page specific features
-                initPageFeatures(pageId);
+                // Hide all pages
+                document.querySelectorAll('.page-container').forEach(page => {
+                    page.classList.remove('active');
+                });
                 
-                // Hide loading
-                hideLoading();
-            }, 300);
-        }
-        
-        // Update mobile navigation
-        function updateMobileNav(pageId) {
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            if (pageId === 'main-portal') {
-                document.querySelector('.nav-item').classList.add('active');
-            } else if (pageId === 'fdr-dps-rates') {
-                document.querySelectorAll('.nav-item')[1].classList.add('active');
-            } else if (pageId === 'bbl-loan-rates') {
-                document.querySelectorAll('.nav-item')[2].classList.add('active');
-            } else if (pageId === 'branch-manual') {
-                document.querySelectorAll('.nav-item')[3].classList.add('active');
-            } else if (pageId === 'cost-center') {
-                document.querySelectorAll('.nav-item')[4].classList.add('active');
+                // Update mobile nav
+                updateMobileNav(pageId);
+                
+                // Show selected page
+                setTimeout(() => {
+                    const pageElement = document.getElementById(pageId);
+                    if (pageElement) {
+                        pageElement.classList.add('active');
+                        
+                        // Scroll to top
+                        scrollToTop();
+                        
+                        // Initialize page specific features
+                        initPageFeatures(pageId);
+                    }
+                    
+                    // Hide loading
+                    hideLoading();
+                }, 300);
             }
-        }
-        
-        // Initialize page features
-        function initPageFeatures(pageId) {
-            if (pageId === 'bbl-loan-rates') {
-                initEMICalculator();
-            } else if (pageId === 'fdr-dps-rates') {
-                initFDCalculator();
-            } else if (pageId === 'branch-manual') {
-                initManualSearch();
+            
+            // Update mobile navigation
+            function updateMobileNav(pageId) {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                if (pageId === 'main-portal') {
+                    const firstNavItem = document.querySelector('.nav-item');
+                    if (firstNavItem) firstNavItem.classList.add('active');
+                } else if (pageId === 'fdr-dps-rates') {
+                    const secondNavItem = document.querySelectorAll('.nav-item')[1];
+                    if (secondNavItem) secondNavItem.classList.add('active');
+                } else if (pageId === 'bbl-loan-rates') {
+                    const thirdNavItem = document.querySelectorAll('.nav-item')[2];
+                    if (thirdNavItem) thirdNavItem.classList.add('active');
+                } else if (pageId === 'branch-manual') {
+                    const fourthNavItem = document.querySelectorAll('.nav-item')[3];
+                    if (fourthNavItem) fourthNavItem.classList.add('active');
+                } else if (pageId === 'cost-center') {
+                    const fifthNavItem = document.querySelectorAll('.nav-item')[4];
+                    if (fifthNavItem) fifthNavItem.classList.add('active');
+                }
             }
-        }
-        
-        // Toggle section visibility
-        function toggleSection(sectionId) {
-            const content = document.getElementById(sectionId + '-content');
-            const icon = content.previousElementSibling.querySelector('.toggle-btn i');
             
-            if (content.style.display === 'none' || !content.style.display) {
-                content.style.display = 'block';
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
-            } else {
-                content.style.display = 'none';
-                icon.classList.remove('fa-chevron-up');
-                icon.classList.add('fa-chevron-down');
+            // Initialize page features
+            function initPageFeatures(pageId) {
+                if (pageId === 'bbl-loan-rates') {
+                    initEMICalculator();
+                } else if (pageId === 'fdr-dps-rates') {
+                    initFDCalculator();
+                } else if (pageId === 'branch-manual') {
+                    initManualSearch();
+                }
             }
-        }
-        
-        // Show modal
-        function showModal(feature) {
-            document.getElementById('modalMessage').textContent = `${feature} is currently under development. Please check back soon!`;
-            document.getElementById('comingSoonModal').style.display = 'flex';
-        }
-        
-        // Close modal
-        function closeModal() {
-            document.getElementById('comingSoonModal').style.display = 'none';
-        }
-        
-        // Refresh news
-        function refreshNews() {
-            showLoading();
-            setTimeout(() => {
-                alert('News refreshed successfully!');
-                hideLoading();
-            }, 1000);
-        }
-        
-        // Scroll to top
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        // Toggle floating button visibility
-        function toggleFloatButton() {
-            const floatBtn = document.querySelector('.float-btn');
-            if (window.scrollY > 300) {
-                floatBtn.style.display = 'flex';
-            } else {
-                floatBtn.style.display = 'none';
+            
+            // Toggle section visibility
+            function toggleSection(sectionId) {
+                const content = document.getElementById(sectionId + '-content');
+                const toggleBtn = content ? content.previousElementSibling.querySelector('.toggle-btn') : null;
+                const icon = toggleBtn ? toggleBtn.querySelector('i') : null;
+                
+                if (content && icon) {
+                    if (content.style.display === 'none' || !content.style.display) {
+                        content.style.display = 'block';
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        content.style.display = 'none';
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                }
             }
-        }
-        
-        // Show loading spinner
-        function showLoading() {
-            document.getElementById('loadingSpinner').style.display = 'block';
-        }
-        
-        // Hide loading spinner
-        function hideLoading() {
-            document.getElementById('loadingSpinner').style.display = 'none';
-        }
-        
-        // Tab navigation for cost center
-        function showCostTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('#cost-center .tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
             
-            // Show selected tab content
-            document.querySelectorAll('#cost-center .tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(tabName + '-tab').classList.add('active');
-        }
-        
-        // Tab navigation for loan rates
-        function showLoanTab(tabName) {
-            // Hide all loan type content
-            document.getElementById('personal-tab').style.display = 'none';
-            document.getElementById('auto-tab').style.display = 'none';
-            document.getElementById('home-tab').style.display = 'none';
-            document.getElementById('digital-tab').style.display = 'none';
-            document.getElementById('emi-tab').style.display = 'none';
+            // Show modal
+            function showModal(feature) {
+                const modal = document.getElementById('comingSoonModal');
+                const modalMessage = document.getElementById('modalMessage');
+                
+                if (modal && modalMessage) {
+                    modalMessage.textContent = `${feature} is currently under development. Please check back soon!`;
+                    modal.style.display = 'flex';
+                }
+            }
             
-            // Update tab buttons
-            document.querySelectorAll('#bbl-loan-rates .tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
+            // Close modal
+            function closeModal() {
+                const modal = document.getElementById('comingSoonModal');
+                if (modal) modal.style.display = 'none';
+            }
             
-            // Show selected tab content
-            if (tabName === 'personal') {
-                document.getElementById('personal-tab').style.display = 'block';
-            } else if (tabName === 'auto') {
-                document.getElementById('auto-tab').style.display = 'block';
-            } else if (tabName === 'home') {
-                document.getElementById('home-tab').style.display = 'block';
-            } else if (tabName === 'digital') {
-                document.getElementById('digital-tab').style.display = 'block';
-            } else if (tabName === 'emi') {
-                document.getElementById('emi-tab').style.display = 'block';
-                initEMICalculator();
+            // Refresh news
+            function refreshNews() {
+                showLoading();
+                setTimeout(() => {
+                    alert('News refreshed successfully!');
+                    hideLoading();
+                }, 1000);
+            }
+            
+            // Scroll to top
+            function scrollToTop() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            
+            // Toggle floating button visibility
+            function toggleFloatButton() {
+                const floatBtn = document.querySelector('.float-btn');
+                if (floatBtn) {
+                    if (window.scrollY > 300) {
+                        floatBtn.style.display = 'flex';
+                    } else {
+                        floatBtn.style.display = 'none';
+                    }
+                }
+            }
+            
+            // Show loading spinner
+            function showLoading() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'block';
+            }
+            
+            // Hide loading spinner
+            function hideLoading() {
+                const spinner = document.getElementById('loadingSpinner');
+                if (spinner) spinner.style.display = 'none';
+            }
+            
+            // Tab navigation for cost center
+            function showCostTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('#cost-center .tab').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // Show selected tab content
+                document.querySelectorAll('#cost-center .tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                const selectedTab = document.getElementById(tabName + '-tab');
+                if (selectedTab) selectedTab.classList.add('active');
+            }
+            
+            // Tab navigation for loan rates
+            function showLoanTab(tabName) {
+                // Hide all loan type content
+                const tabs = ['personal', 'auto', 'home', 'digital', 'emi'];
+                tabs.forEach(tab => {
+                    const tabElement = document.getElementById(tab + '-tab');
+                    if (tabElement) tabElement.style.display = 'none';
+                });
+                
+                // Update tab buttons
+                document.querySelectorAll('#bbl-loan-rates .tab').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // Show selected tab content
+                const selectedTab = document.getElementById(tabName + '-tab');
+                if (selectedTab) {
+                    selectedTab.style.display = 'block';
+                    if (tabName === 'emi') {
+                        initEMICalculator();
+                    }
+                }
+                
+                // Update loan type buttons
+                if (tabName !== 'emi') {
+                    updateLoanTypeButtons(tabName);
+                }
             }
             
             // Update loan type buttons
-            if (tabName !== 'emi') {
-                updateLoanTypeButtons(tabName);
+            function updateLoanTypeButtons(selectedType) {
+                const loanTypeBtns = document.querySelectorAll('.loan-type-btn');
+                loanTypeBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('data-loan') === selectedType) {
+                        btn.classList.add('active');
+                    }
+                });
             }
-        }
-        
-        // Update loan type buttons
-        function updateLoanTypeButtons(selectedType) {
-            const loanTypeBtns = document.querySelectorAll('.loan-type-btn');
-            loanTypeBtns.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-loan') === selectedType) {
-                    btn.classList.add('active');
+            
+            // Update loan type from buttons
+            function updateLoanType(loanType) {
+                // Hide all tabs
+                ['personal', 'auto', 'home', 'digital'].forEach(tab => {
+                    const tabElement = document.getElementById(tab + '-tab');
+                    if (tabElement) tabElement.style.display = 'none';
+                });
+                
+                // Show selected tab
+                const selectedTab = document.getElementById(loanType + '-tab');
+                if (selectedTab) selectedTab.style.display = 'block';
+                
+                // Update buttons
+                updateLoanTypeButtons(loanType);
+                
+                // Update tab navigation
+                document.querySelectorAll('#bbl-loan-rates .tab').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.textContent.includes(loanType.charAt(0).toUpperCase() + loanType.slice(1))) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
+            
+            // Tab navigation for deposit rates
+            function showDepositTab(tabName) {
+                // Hide all tab content
+                const tabs = ['fd', 'savings', 'dps', 'calc', 'policies'];
+                tabs.forEach(tab => {
+                    const tabElement = document.getElementById(tab + '-tab');
+                    if (tabElement) tabElement.style.display = 'none';
+                });
+                
+                // Update tab buttons
+                document.querySelectorAll('#fdr-dps-rates .tab').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                
+                // Show selected tab content
+                const selectedTab = document.getElementById(tabName + '-tab');
+                if (selectedTab) {
+                    selectedTab.style.display = 'block';
+                    if (tabName === 'calc') {
+                        initFDCalculator();
+                    }
                 }
-            });
-        }
-        
-        // Update loan type from buttons
-        function updateLoanType(loanType) {
-            // Hide all tabs
-            document.getElementById('personal-tab').style.display = 'none';
-            document.getElementById('auto-tab').style.display = 'none';
-            document.getElementById('home-tab').style.display = 'none';
-            document.getElementById('digital-tab').style.display = 'none';
+            }
             
-            // Show selected tab
-            document.getElementById(loanType + '-tab').style.display = 'block';
-            
-            // Update buttons
-            updateLoanTypeButtons(loanType);
-            
-            // Update tab navigation
-            document.querySelectorAll('#bbl-loan-rates .tab').forEach(tab => {
-                tab.classList.remove('active');
-                if (tab.textContent.includes(loanType.charAt(0).toUpperCase() + loanType.slice(1))) {
-                    tab.classList.add('active');
+            // Initialize sliders
+            function initSliders() {
+                // Loan amount slider
+                const loanAmountSlider = document.getElementById('loan-amount-slider');
+                const loanAmountValue = document.getElementById('loan-amount-value');
+                if (loanAmountSlider && loanAmountValue) {
+                    loanAmountSlider.addEventListener('input', function() {
+                        loanAmountValue.textContent = formatNumber(this.value);
+                    });
                 }
-            });
-        }
-        
-        // Tab navigation for deposit rates
-        function showDepositTab(tabName) {
-            // Hide all tab content
-            document.getElementById('fd-tab').style.display = 'none';
-            document.getElementById('savings-tab').style.display = 'none';
-            document.getElementById('dps-tab').style.display = 'none';
-            document.getElementById('calc-tab').style.display = 'none';
-            document.getElementById('policies-tab').style.display = 'none';
-            
-            // Update tab buttons
-            document.querySelectorAll('#fdr-dps-rates .tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Show selected tab content
-            if (tabName === 'fd') {
-                document.getElementById('fd-tab').style.display = 'block';
-            } else if (tabName === 'savings') {
-                document.getElementById('savings-tab').style.display = 'block';
-            } else if (tabName === 'dps') {
-                document.getElementById('dps-tab').style.display = 'block';
-            } else if (tabName === 'calc') {
-                document.getElementById('calc-tab').style.display = 'block';
-                initFDCalculator();
-            } else if (tabName === 'policies') {
-                document.getElementById('policies-tab').style.display = 'block';
-            }
-        }
-        
-        // Initialize sliders
-        function initSliders() {
-            // Loan amount slider
-            const loanAmountSlider = document.getElementById('loan-amount-slider');
-            const loanAmountValue = document.getElementById('loan-amount-value');
-            if (loanAmountSlider) {
-                loanAmountSlider.addEventListener('input', function() {
-                    loanAmountValue.textContent = formatNumber(this.value);
-                });
-            }
-            
-            // Interest rate slider
-            const interestRateSlider = document.getElementById('interest-rate-slider');
-            const interestRateValue = document.getElementById('interest-rate-value');
-            if (interestRateSlider) {
-                interestRateSlider.addEventListener('input', function() {
-                    interestRateValue.textContent = this.value + '%';
-                });
+                
+                // Interest rate slider
+                const interestRateSlider = document.getElementById('interest-rate-slider');
+                const interestRateValue = document.getElementById('interest-rate-value');
+                if (interestRateSlider && interestRateValue) {
+                    interestRateSlider.addEventListener('input', function() {
+                        interestRateValue.textContent = this.value + '%';
+                    });
+                }
+                
+                // Loan tenure slider
+                const loanTenureSlider = document.getElementById('loan-tenure-slider');
+                const loanTenureValue = document.getElementById('loan-tenure-value');
+                if (loanTenureSlider && loanTenureValue) {
+                    loanTenureSlider.addEventListener('input', function() {
+                        loanTenureValue.textContent = this.value + ' Years';
+                    });
+                }
+                
+                // FD sliders
+                const depositAmountSlider = document.getElementById('deposit-amount-slider');
+                const depositAmountValue = document.getElementById('deposit-amount-value');
+                if (depositAmountSlider && depositAmountValue) {
+                    depositAmountSlider.addEventListener('input', function() {
+                        depositAmountValue.textContent = formatNumber(this.value);
+                    });
+                }
+                
+                const depositRateSlider = document.getElementById('deposit-rate-slider');
+                const depositRateValue = document.getElementById('deposit-rate-value');
+                if (depositRateSlider && depositRateValue) {
+                    depositRateSlider.addEventListener('input', function() {
+                        depositRateValue.textContent = this.value + '%';
+                    });
+                }
+                
+                const depositTenureSlider = document.getElementById('deposit-tenure-slider');
+                const depositTenureValue = document.getElementById('deposit-tenure-value');
+                if (depositTenureSlider && depositTenureValue) {
+                    depositTenureSlider.addEventListener('input', function() {
+                        const years = Math.floor(this.value / 12);
+                        const months = this.value % 12;
+                        let displayText = '';
+                        if (years > 0) displayText += years + ' Year' + (years > 1 ? 's ' : ' ');
+                        if (months > 0) displayText += months + ' Month' + (months > 1 ? 's' : '');
+                        depositTenureValue.textContent = displayText.trim() || '1 Month';
+                    });
+                }
             }
             
-            // Loan tenure slider
-            const loanTenureSlider = document.getElementById('loan-tenure-slider');
-            const loanTenureValue = document.getElementById('loan-tenure-value');
-            if (loanTenureSlider) {
-                loanTenureSlider.addEventListener('input', function() {
-                    loanTenureValue.textContent = this.value + ' Years';
-                });
+            // Format number with commas
+            function formatNumber(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
             
-            // FD sliders
-            const depositAmountSlider = document.getElementById('deposit-amount-slider');
-            const depositAmountValue = document.getElementById('deposit-amount-value');
-            if (depositAmountSlider) {
-                depositAmountSlider.addEventListener('input', function() {
-                    depositAmountValue.textContent = formatNumber(this.value);
-                });
+            // Initialize EMI calculator
+            function initEMICalculator() {
+                // Set initial values
+                const loanAmountSlider = document.getElementById('loan-amount-slider');
+                const interestRateSlider = document.getElementById('interest-rate-slider');
+                const loanTenureSlider = document.getElementById('loan-tenure-slider');
+                const loanTypeSelect = document.getElementById('loan-type-select');
+                
+                if (loanAmountSlider && loanAmountSlider.value) {
+                    const loanAmountValue = document.getElementById('loan-amount-value');
+                    if (loanAmountValue) loanAmountValue.textContent = formatNumber(loanAmountSlider.value);
+                }
+                if (interestRateSlider && interestRateSlider.value) {
+                    const interestRateValue = document.getElementById('interest-rate-value');
+                    if (interestRateValue) interestRateValue.textContent = interestRateSlider.value + '%';
+                }
+                if (loanTenureSlider && loanTenureSlider.value) {
+                    const loanTenureValue = document.getElementById('loan-tenure-value');
+                    if (loanTenureValue) loanTenureValue.textContent = loanTenureSlider.value + ' Years';
+                }
+                
+                // Update interest rate based on loan type
+                if (loanTypeSelect) {
+                    loanTypeSelect.addEventListener('change', function() {
+                        updateInterestRateForLoanType(this.value);
+                    });
+                }
             }
             
-            const depositRateSlider = document.getElementById('deposit-rate-slider');
-            const depositRateValue = document.getElementById('deposit-rate-value');
-            if (depositRateSlider) {
-                depositRateSlider.addEventListener('input', function() {
-                    depositRateValue.textContent = this.value + '%';
-                });
+            // Update EMI loan type
+            function updateEMILoanType(loanType) {
+                updateInterestRateForLoanType(loanType);
             }
             
-            const depositTenureSlider = document.getElementById('deposit-tenure-slider');
-            const depositTenureValue = document.getElementById('deposit-tenure-value');
-            if (depositTenureSlider) {
-                depositTenureSlider.addEventListener('input', function() {
-                    const years = Math.floor(this.value / 12);
-                    const months = this.value % 12;
-                    let displayText = '';
-                    if (years > 0) displayText += years + ' Year' + (years > 1 ? 's ' : ' ');
-                    if (months > 0) displayText += months + ' Month' + (months > 1 ? 's' : '');
-                    depositTenureValue.textContent = displayText.trim() || '1 Month';
-                });
-            }
-        }
-        
-        // Format number with commas
-        function formatNumber(num) {
-            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-        
-        // Initialize EMI calculator
-        function initEMICalculator() {
-            // Set initial values
-            const loanAmountSlider = document.getElementById('loan-amount-slider');
-            const interestRateSlider = document.getElementById('interest-rate-slider');
-            const loanTenureSlider = document.getElementById('loan-tenure-slider');
-            const loanTypeSelect = document.getElementById('loan-type-select');
-            
-            if (loanAmountSlider && loanAmountSlider.value) {
-                document.getElementById('loan-amount-value').textContent = formatNumber(loanAmountSlider.value);
-            }
-            if (interestRateSlider && interestRateSlider.value) {
-                document.getElementById('interest-rate-value').textContent = interestRateSlider.value + '%';
-            }
-            if (loanTenureSlider && loanTenureSlider.value) {
-                document.getElementById('loan-tenure-value').textContent = loanTenureSlider.value + ' Years';
+            // Calculate EMI
+            function calculateEMI() {
+                const loanAmountSlider = document.getElementById('loan-amount-slider');
+                const interestRateSlider = document.getElementById('interest-rate-slider');
+                const loanTenureSlider = document.getElementById('loan-tenure-slider');
+                
+                if (!loanAmountSlider || !interestRateSlider || !loanTenureSlider) return;
+                
+                const loanAmount = parseFloat(loanAmountSlider.value);
+                const interestRate = parseFloat(interestRateSlider.value);
+                const loanTenure = parseFloat(loanTenureSlider.value);
+                
+                // Convert annual interest rate to monthly and percentage to decimal
+                const monthlyInterestRate = (interestRate / 12) / 100;
+                const loanTenureMonths = loanTenure * 12;
+                
+                // Calculate EMI using the formula
+                const emi = loanAmount * monthlyInterestRate * 
+                           Math.pow(1 + monthlyInterestRate, loanTenureMonths) / 
+                           (Math.pow(1 + monthlyInterestRate, loanTenureMonths) - 1);
+                
+                // Calculate total payment and interest
+                const totalPayment = emi * loanTenureMonths;
+                const totalInterest = totalPayment - loanAmount;
+                
+                // Calculate percentages for chart
+                const principalPercentage = Math.round((loanAmount / totalPayment) * 100);
+                const interestPercentage = 100 - principalPercentage;
+                
+                // Update results
+                const emiAmount = document.getElementById('emi-amount');
+                const totalInterestEl = document.getElementById('total-interest');
+                const totalPaymentEl = document.getElementById('total-payment');
+                
+                if (emiAmount) emiAmount.textContent = '৳' + formatNumber(Math.round(emi));
+                if (totalInterestEl) totalInterestEl.textContent = '৳' + formatNumber(Math.round(totalInterest));
+                if (totalPaymentEl) totalPaymentEl.textContent = '৳' + formatNumber(Math.round(totalPayment));
+                
+                // Update chart
+                const principalBar = document.getElementById('principal-bar');
+                const interestBar = document.getElementById('interest-bar');
+                const emiChart = document.getElementById('emi-chart');
+                
+                if (principalBar) {
+                    principalBar.style.height = principalPercentage + '%';
+                    const chartValue = principalBar.querySelector('.chart-value');
+                    if (chartValue) chartValue.textContent = principalPercentage + '%';
+                }
+                
+                if (interestBar) {
+                    interestBar.style.height = interestPercentage + '%';
+                    const chartValue = interestBar.querySelector('.chart-value');
+                    if (chartValue) chartValue.textContent = interestPercentage + '%';
+                }
+                
+                // Show results and chart
+                const emiResults = document.getElementById('emi-results');
+                if (emiResults) emiResults.style.display = 'block';
+                if (emiChart) emiChart.style.display = 'flex';
+                
+                // Scroll to results
+                if (emiResults) {
+                    emiResults.scrollIntoView({ behavior: 'smooth' });
+                }
             }
             
             // Update interest rate based on loan type
-            if (loanTypeSelect) {
-                loanTypeSelect.addEventListener('change', function() {
-                    updateInterestRateForLoanType(this.value);
+            function updateInterestRateForLoanType(loanType) {
+                let defaultRate = 12;
+                
+                switch(loanType) {
+                    case 'personal':
+                        defaultRate = 12.18;
+                        break;
+                    case 'auto':
+                        defaultRate = 11.68;
+                        break;
+                    case 'home':
+                        defaultRate = 11.68;
+                        break;
+                    case 'digital':
+                        defaultRate = 12.18;
+                        break;
+                }
+                
+                // Update slider and display
+                const interestRateSlider = document.getElementById('interest-rate-slider');
+                const interestRateValue = document.getElementById('interest-rate-value');
+                
+                if (interestRateSlider && interestRateValue) {
+                    interestRateSlider.value = defaultRate;
+                    interestRateValue.textContent = defaultRate + '%';
+                }
+            }
+            
+            // Initialize FD calculator
+            function initFDCalculator() {
+                // Set initial values
+                const depositAmountSlider = document.getElementById('deposit-amount-slider');
+                const depositRateSlider = document.getElementById('deposit-rate-slider');
+                const depositTenureSlider = document.getElementById('deposit-tenure-slider');
+                
+                if (depositAmountSlider && depositAmountSlider.value) {
+                    const depositAmountValue = document.getElementById('deposit-amount-value');
+                    if (depositAmountValue) depositAmountValue.textContent = formatNumber(depositAmountSlider.value);
+                }
+                if (depositRateSlider && depositRateSlider.value) {
+                    const depositRateValue = document.getElementById('deposit-rate-value');
+                    if (depositRateValue) depositRateValue.textContent = depositRateSlider.value + '%';
+                }
+                if (depositTenureSlider && depositTenureSlider.value) {
+                    const depositTenureValue = document.getElementById('deposit-tenure-value');
+                    if (depositTenureValue) {
+                        const years = Math.floor(depositTenureSlider.value / 12);
+                        const months = depositTenureSlider.value % 12;
+                        let displayText = '';
+                        if (years > 0) displayText += years + ' Year' + (years > 1 ? 's ' : ' ');
+                        if (months > 0) displayText += months + ' Month' + (months > 1 ? 's' : '');
+                        depositTenureValue.textContent = displayText.trim() || '1 Month';
+                    }
+                }
+            }
+            
+            // Select payout option
+            function selectPayoutOption(element) {
+                const payoutOptions = document.querySelectorAll('.payout-option');
+                payoutOptions.forEach(option => option.classList.remove('active'));
+                element.classList.add('active');
+            }
+            
+            // Calculate FD
+            function calculateFD() {
+                const depositAmountSlider = document.getElementById('deposit-amount-slider');
+                const depositRateSlider = document.getElementById('deposit-rate-slider');
+                const depositTenureSlider = document.getElementById('deposit-tenure-slider');
+                
+                if (!depositAmountSlider || !depositRateSlider || !depositTenureSlider) return;
+                
+                const depositAmount = parseFloat(depositAmountSlider.value);
+                const interestRate = parseFloat(depositRateSlider.value);
+                const tenureMonths = parseFloat(depositTenureSlider.value);
+                
+                // Get selected payout option
+                const selectedPayout = document.querySelector('.payout-option.active');
+                const payoutType = selectedPayout ? selectedPayout.getAttribute('data-payout') : 'maturity';
+                
+                // Convert months to years for calculation
+                const tenureYears = tenureMonths / 12;
+                
+                let maturityAmount, totalInterest;
+                let payoutInfo = '';
+                
+                // Calculate based on payout frequency
+                const annualRate = interestRate / 100;
+                
+                if (payoutType === 'maturity') {
+                    // Compound interest at maturity
+                    maturityAmount = depositAmount * Math.pow(1 + annualRate, tenureYears);
+                    totalInterest = maturityAmount - depositAmount;
+                    payoutInfo = 'At Maturity';
+                } else if (payoutType === 'monthly') {
+                    // Monthly compounding
+                    const monthlyRate = annualRate / 12;
+                    const totalMonths = tenureMonths;
+                    maturityAmount = depositAmount * Math.pow(1 + monthlyRate, totalMonths);
+                    totalInterest = maturityAmount - depositAmount;
+                    payoutInfo = 'Monthly';
+                } else if (payoutType === 'quarterly') {
+                    // Quarterly compounding
+                    const quarterlyRate = annualRate / 4;
+                    const totalQuarters = tenureMonths / 3;
+                    maturityAmount = depositAmount * Math.pow(1 + quarterlyRate, totalQuarters);
+                    totalInterest = maturityAmount - depositAmount;
+                    payoutInfo = 'Quarterly';
+                } else if (payoutType === 'yearly') {
+                    // Yearly compounding
+                    maturityAmount = depositAmount * Math.pow(1 + annualRate, tenureYears);
+                    totalInterest = maturityAmount - depositAmount;
+                    payoutInfo = 'Yearly';
+                }
+                
+                // Format tenure for display
+                const years = Math.floor(tenureMonths / 12);
+                const months = tenureMonths % 12;
+                let tenureText = '';
+                if (years > 0) tenureText += years + ' Year' + (years > 1 ? 's ' : ' ');
+                if (months > 0) tenureText += months + ' Month' + (months > 1 ? 's' : '');
+                
+                // Update results
+                const fdPrincipal = document.getElementById('fd-principal');
+                const fdRate = document.getElementById('fd-rate');
+                const fdTenure = document.getElementById('fd-tenure');
+                const fdPayout = document.getElementById('fd-payout');
+                const fdInterest = document.getElementById('fd-interest');
+                const fdMaturity = document.getElementById('fd-maturity');
+                const fdResults = document.getElementById('fd-results');
+                
+                if (fdPrincipal) fdPrincipal.textContent = '৳' + formatNumber(Math.round(depositAmount));
+                if (fdRate) fdRate.textContent = interestRate + '%';
+                if (fdTenure) fdTenure.textContent = tenureText.trim() || '1 Month';
+                if (fdPayout) fdPayout.textContent = payoutInfo;
+                if (fdInterest) fdInterest.textContent = '৳' + formatNumber(Math.round(totalInterest));
+                if (fdMaturity) fdMaturity.textContent = '৳' + formatNumber(Math.round(maturityAmount));
+                
+                // Show results
+                if (fdResults) {
+                    fdResults.style.display = 'block';
+                    // Scroll to results
+                    fdResults.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            
+            // Initialize manual search
+            function initManualSearch() {
+                const searchInput = document.querySelector('.manual-search-input');
+                const clearButton = document.querySelector('.manual-clear-search');
+                const searchResults = document.querySelector('.manual-search-results');
+                
+                if (!searchInput) return;
+                
+                searchInput.addEventListener('input', function() {
+                    if (clearButton) {
+                        clearButton.style.display = this.value.length > 0 ? 'flex' : 'none';
+                    }
+                    
+                    if (this.value.length > 2) {
+                        performSearch(this.value);
+                    } else {
+                        if (searchResults) searchResults.style.display = 'none';
+                    }
+                });
+                
+                if (clearButton) {
+                    clearButton.addEventListener('click', function() {
+                        if (searchInput) {
+                            searchInput.value = '';
+                            clearButton.style.display = 'none';
+                            if (searchResults) searchResults.style.display = 'none';
+                            searchInput.focus();
+                        }
+                    });
+                }
+                
+                document.addEventListener('click', function(event) {
+                    if (!event.target.closest('.manual-search-container') && searchResults) {
+                        searchResults.style.display = 'none';
+                    }
                 });
             }
-        }
-        
-        // Update EMI loan type
-        function updateEMILoanType(loanType) {
-            updateInterestRateForLoanType(loanType);
-        }
-        
-        // Calculate EMI
-        function calculateEMI() {
-            const loanAmount = parseFloat(document.getElementById('loan-amount-slider').value);
-            const interestRate = parseFloat(document.getElementById('interest-rate-slider').value);
-            const loanTenure = parseFloat(document.getElementById('loan-tenure-slider').value);
             
-            // Convert annual interest rate to monthly and percentage to decimal
-            const monthlyInterestRate = (interestRate / 12) / 100;
-            const loanTenureMonths = loanTenure * 12;
-            
-            // Calculate EMI using the formula
-            const emi = loanAmount * monthlyInterestRate * 
-                       Math.pow(1 + monthlyInterestRate, loanTenureMonths) / 
-                       (Math.pow(1 + monthlyInterestRate, loanTenureMonths) - 1);
-            
-            // Calculate total payment and interest
-            const totalPayment = emi * loanTenureMonths;
-            const totalInterest = totalPayment - loanAmount;
-            
-            // Calculate percentages for chart
-            const principalPercentage = Math.round((loanAmount / totalPayment) * 100);
-            const interestPercentage = 100 - principalPercentage;
-            
-            // Update results
-            document.getElementById('emi-amount').textContent = '৳' + formatNumber(Math.round(emi));
-            document.getElementById('total-interest').textContent = '৳' + formatNumber(Math.round(totalInterest));
-            document.getElementById('total-payment').textContent = '৳' + formatNumber(Math.round(totalPayment));
-            
-            // Update chart
-            document.getElementById('principal-bar').style.height = principalPercentage + '%';
-            document.getElementById('principal-bar').querySelector('.chart-value').textContent = principalPercentage + '%';
-            document.getElementById('interest-bar').style.height = interestPercentage + '%';
-            document.getElementById('interest-bar').querySelector('.chart-value').textContent = interestPercentage + '%';
-            
-            // Show results and chart
-            document.getElementById('emi-results').style.display = 'block';
-            document.getElementById('emi-chart').style.display = 'flex';
-            
-            // Scroll to results
-            document.getElementById('emi-results').scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // Update interest rate based on loan type
-        function updateInterestRateForLoanType(loanType) {
-            let defaultRate = 12;
-            
-            switch(loanType) {
-                case 'personal':
-                    defaultRate = 12.18;
-                    break;
-                case 'auto':
-                    defaultRate = 11.68;
-                    break;
-                case 'home':
-                    defaultRate = 11.68;
-                    break;
-                case 'digital':
-                    defaultRate = 12.18;
-                    break;
-            }
-            
-            // Update slider and display
-            const interestRateSlider = document.getElementById('interest-rate-slider');
-            const interestRateValue = document.getElementById('interest-rate-value');
-            
-            if (interestRateSlider && interestRateValue) {
-                interestRateSlider.value = defaultRate;
-                interestRateValue.textContent = defaultRate + '%';
-            }
-        }
-        
-        // Initialize FD calculator
-        function initFDCalculator() {
-            // Set initial values
-            const depositAmountSlider = document.getElementById('deposit-amount-slider');
-            const depositRateSlider = document.getElementById('deposit-rate-slider');
-            const depositTenureSlider = document.getElementById('deposit-tenure-slider');
-            
-            if (depositAmountSlider && depositAmountSlider.value) {
-                document.getElementById('deposit-amount-value').textContent = formatNumber(depositAmountSlider.value);
-            }
-            if (depositRateSlider && depositRateSlider.value) {
-                document.getElementById('deposit-rate-value').textContent = depositRateSlider.value + '%';
-            }
-            if (depositTenureSlider && depositTenureSlider.value) {
-                const years = Math.floor(depositTenureSlider.value / 12);
-                const months = depositTenureSlider.value % 12;
-                let displayText = '';
-                if (years > 0) displayText += years + ' Year' + (years > 1 ? 's ' : ' ');
-                if (months > 0) displayText += months + ' Month' + (months > 1 ? 's' : '');
-                document.getElementById('deposit-tenure-value').textContent = displayText.trim() || '1 Month';
-            }
-        }
-        
-        // Select payout option
-        function selectPayoutOption(element) {
-            const payoutOptions = document.querySelectorAll('.payout-option');
-            payoutOptions.forEach(option => option.classList.remove('active'));
-            element.classList.add('active');
-        }
-        
-        // Calculate FD
-        function calculateFD() {
-            const depositAmount = parseFloat(document.getElementById('deposit-amount-slider').value);
-            const interestRate = parseFloat(document.getElementById('deposit-rate-slider').value);
-            const tenureMonths = parseFloat(document.getElementById('deposit-tenure-slider').value);
-            
-            // Get selected payout option
-            const selectedPayout = document.querySelector('.payout-option.active');
-            const payoutType = selectedPayout ? selectedPayout.getAttribute('data-payout') : 'maturity';
-            
-            // Convert months to years for calculation
-            const tenureYears = tenureMonths / 12;
-            
-            let maturityAmount, totalInterest;
-            let payoutInfo = '';
-            
-            // Calculate based on payout frequency
-            const annualRate = interestRate / 100;
-            
-            if (payoutType === 'maturity') {
-                // Compound interest at maturity
-                maturityAmount = depositAmount * Math.pow(1 + annualRate, tenureYears);
-                totalInterest = maturityAmount - depositAmount;
-                payoutInfo = 'At Maturity';
-            } else if (payoutType === 'monthly') {
-                // Monthly compounding
-                const monthlyRate = annualRate / 12;
-                const totalMonths = tenureMonths;
-                maturityAmount = depositAmount * Math.pow(1 + monthlyRate, totalMonths);
-                totalInterest = maturityAmount - depositAmount;
-                payoutInfo = 'Monthly';
-            } else if (payoutType === 'quarterly') {
-                // Quarterly compounding
-                const quarterlyRate = annualRate / 4;
-                const totalQuarters = tenureMonths / 3;
-                maturityAmount = depositAmount * Math.pow(1 + quarterlyRate, totalQuarters);
-                totalInterest = maturityAmount - depositAmount;
-                payoutInfo = 'Quarterly';
-            } else if (payoutType === 'yearly') {
-                // Yearly compounding
-                maturityAmount = depositAmount * Math.pow(1 + annualRate, tenureYears);
-                totalInterest = maturityAmount - depositAmount;
-                payoutInfo = 'Yearly';
-            }
-            
-            // Format tenure for display
-            const years = Math.floor(tenureMonths / 12);
-            const months = tenureMonths % 12;
-            let tenureText = '';
-            if (years > 0) tenureText += years + ' Year' + (years > 1 ? 's ' : ' ');
-            if (months > 0) tenureText += months + ' Month' + (months > 1 ? 's' : '');
-            
-            // Update results
-            document.getElementById('fd-principal').textContent = '৳' + formatNumber(Math.round(depositAmount));
-            document.getElementById('fd-rate').textContent = interestRate + '%';
-            document.getElementById('fd-tenure').textContent = tenureText.trim() || '1 Month';
-            document.getElementById('fd-payout').textContent = payoutInfo;
-            document.getElementById('fd-interest').textContent = '৳' + formatNumber(Math.round(totalInterest));
-            document.getElementById('fd-maturity').textContent = '৳' + formatNumber(Math.round(maturityAmount));
-            
-            // Show results
-            document.getElementById('fd-results').style.display = 'block';
-            
-            // Scroll to results
-            document.getElementById('fd-results').scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // Initialize manual search
-        function initManualSearch() {
-            const searchInput = document.querySelector('.manual-search-input');
-            const clearButton = document.querySelector('.manual-clear-search');
-            const searchResults = document.querySelector('.manual-search-results');
-            
-            if (!searchInput) return;
-            
-            searchInput.addEventListener('input', function() {
-                clearButton.style.display = this.value.length > 0 ? 'flex' : 'none';
+            function performSearch(query) {
+                const searchResults = document.querySelector('.manual-search-results');
+                const manualItems = document.querySelectorAll('.manual-item');
                 
-                if (this.value.length > 2) {
-                    performSearch(this.value);
-                } else {
-                    searchResults.style.display = 'none';
-                }
-            });
-            
-            clearButton.addEventListener('click', function() {
-                searchInput.value = '';
-                clearButton.style.display = 'none';
-                searchResults.style.display = 'none';
-                searchInput.focus();
-            });
-            
-            document.addEventListener('click', function(event) {
-                if (!event.target.closest('.manual-search-container')) {
-                    searchResults.style.display = 'none';
-                }
-            });
-        }
-        
-        function performSearch(query) {
-            const searchResults = document.querySelector('.manual-search-results');
-            const manualItems = document.querySelectorAll('.manual-item');
-            
-            let resultsHTML = '';
-            let resultCount = 0;
-            
-            const lowerQuery = query.toLowerCase();
-            
-            manualItems.forEach(item => {
-                const cardNumber = item.querySelector('.card-number')?.textContent || '';
-                const title = item.querySelector('span').textContent.toLowerCase();
+                if (!searchResults) return;
                 
-                if (title.includes(lowerQuery)) {
-                    resultCount++;
-                    const formattedTitle = title.replace(
-                        new RegExp(`(${lowerQuery})`, 'gi'),
-                        '<span class="manual-search-result-highlight">$1</span>'
-                    );
+                let resultsHTML = '';
+                let resultCount = 0;
+                
+                const lowerQuery = query.toLowerCase();
+                
+                manualItems.forEach(item => {
+                    const cardNumber = item.querySelector('.card-number')?.textContent || '';
+                    const span = item.querySelector('span');
+                    if (!span) return;
                     
-                    resultsHTML += `
-                        <div class="manual-search-result-item" onclick="showManualDetail('${item.querySelector('span').textContent}')">
-                            <i class="fas fa-book manual-search-result-icon"></i>
-                            <div class="manual-search-result-text">
-                                <div class="manual-search-result-title">${formattedTitle}</div>
-                                <div class="manual-search-result-context">Section ${cardNumber}</div>
+                    const title = span.textContent.toLowerCase();
+                    
+                    if (title.includes(lowerQuery)) {
+                        resultCount++;
+                        const formattedTitle = span.textContent.replace(
+                            new RegExp(`(${query})`, 'gi'),
+                            '<span class="manual-search-result-highlight">$1</span>'
+                        );
+                        
+                        resultsHTML += `
+                            <div class="manual-search-result-item" onclick="showManualDetail('${span.textContent}')">
+                                <i class="fas fa-book manual-search-result-icon"></i>
+                                <div class="manual-search-result-text">
+                                    <div class="manual-search-result-title">${formattedTitle}</div>
+                                    <div class="manual-search-result-context">Section ${cardNumber}</div>
+                                </div>
                             </div>
+                        `;
+                    }
+                });
+                
+                if (resultCount > 0) {
+                    searchResults.innerHTML = resultsHTML;
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.innerHTML = `
+                        <div class="manual-search-no-results">
+                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i>
+                            <p>No results found for "${query}"</p>
                         </div>
                     `;
+                    searchResults.style.display = 'block';
+                }
+            }
+            
+            // Show manual detail with animated lines
+            function showManualDetail(section) {
+                const detailTitle = document.getElementById('detail-title');
+                const detailContent = document.getElementById('detail-content');
+                const manualGrid = document.getElementById('manual-grid');
+                const manualDetail = document.getElementById('manual-detail');
+                
+                if (!detailTitle || !detailContent || !manualGrid || !manualDetail) return;
+                
+                // Set content based on section
+                let title = section;
+                let content = '';
+                
+                switch(section) {
+                    case 'Access Control':
+                        content = `
+                            <div class="animated-lines-container">
+                                <div class="line-box line-1">
+                                    <div class="line-content">
+                                        <i class="fas fa-exclamation-circle line-icon"></i>
+                                        <span>Cash premises are Entry Restricted area.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-2">
+                                    <div class="line-content">
+                                        <i class="fas fa-user-shield line-icon"></i>
+                                        <span>Only authorized personnel are allowed to enter these areas.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-3">
+                                    <div class="line-content">
+                                        <i class="fas fa-ban line-icon"></i>
+                                        <span>Unauthorized access is strictly prohibited.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-4">
+                                    <div class="line-content">
+                                        <i class="fas fa-gavel line-icon"></i>
+                                        <span>Violation may result in disciplinary action.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-5">
+                                    <div class="line-content">
+                                        <i class="fas fa-clipboard-check line-icon"></i>
+                                        <span>All access must be logged in the visitor register.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-6">
+                                    <div class="line-content">
+                                        <i class="fas fa-eye line-icon"></i>
+                                        <span>CCTV monitoring is active in all restricted areas.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    case 'Cash Security':
+                        content = `
+                            <div class="animated-lines-container">
+                                <div class="line-box line-1">
+                                    <div class="line-content">
+                                        <i class="fas fa-shield-alt line-icon"></i>
+                                        <span>Security guards must be posted at all entrances to the cash area.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-2">
+                                    <div class="line-content">
+                                        <i class="fas fa-camera line-icon"></i>
+                                        <span>Multiple CCTV cameras must cover all angles of the cash handling area.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-3">
+                                    <div class="line-content">
+                                        <i class="fas fa-money-bill-wave line-icon"></i>
+                                        <span>Cash counting must never be done outside designated secure areas.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-4">
+                                        <div class="line-content">
+                                        <i class="fas fa-user-friends line-icon"></i>
+                                        <span>Dual control principle applies - no single person should handle cash alone.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    default:
+                        content = `
+                            <div class="animated-lines-container">
+                                <div class="line-box line-1">
+                                    <div class="line-content">
+                                        <i class="fas fa-info-circle line-icon"></i>
+                                        <span>Detailed content for ${section.toLowerCase()} section is under development.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-2">
+                                    <div class="line-content">
+                                        <i class="fas fa-tools line-icon"></i>
+                                        <span>This section will be updated with complete operational procedures.</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="line-box line-3">
+                                    <div class="line-content">
+                                        <i class="fas fa-clock line-icon"></i>
+                                        <span>Please check back soon for the complete operational manual.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                }
+                
+                detailTitle.textContent = title;
+                detailContent.innerHTML = content;
+                
+                // Show detail, hide grid
+                manualGrid.style.display = 'none';
+                manualDetail.style.display = 'block';
+                
+                // Scroll to top of detail
+                manualDetail.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Hide manual detail
+            function hideManualDetail() {
+                const manualGrid = document.getElementById('manual-grid');
+                const manualDetail = document.getElementById('manual-detail');
+                const searchInput = document.querySelector('.manual-search-input');
+                const clearButton = document.querySelector('.manual-clear-search');
+                const searchResults = document.querySelector('.manual-search-results');
+                
+                if (manualGrid) manualGrid.style.display = 'grid';
+                if (manualDetail) manualDetail.style.display = 'none';
+                if (searchInput) searchInput.value = '';
+                if (clearButton) clearButton.style.display = 'none';
+                if (searchResults) searchResults.style.display = 'none';
+            }
+            
+            // Keyboard shortcuts
+            function handleKeyPress(event) {
+                // Escape key - go back
+                if (event.key === 'Escape') {
+                    if (document.getElementById('comingSoonModal')?.style.display === 'flex') {
+                        closeModal();
+                    } else if (document.getElementById('logoutModal')?.style.display === 'flex') {
+                        closeLogoutModal();
+                    } else if (document.getElementById('admin-portal')?.style.display === 'flex') {
+                        closeAdminPortal();
+                    } else {
+                        showPage('main-portal');
+                    }
+                }
+                
+                // Ctrl+L for logout
+                if (event.ctrlKey && event.key === 'l') {
+                    event.preventDefault();
+                    logout();
+                }
+                
+                // Ctrl+A for admin (if admin)
+                if (event.ctrlKey && event.key === 'a' && isAdmin()) {
+                    event.preventDefault();
+                    showAdminPortal();
+                }
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const mobileNav = document.querySelector('.mobile-nav');
+                if (mobileNav) {
+                    if (window.innerWidth <= 768) {
+                        mobileNav.style.display = 'flex';
+                    } else {
+                        mobileNav.style.display = 'none';
+                    }
                 }
             });
             
-            if (resultCount > 0) {
-                searchResults.innerHTML = resultsHTML;
-                searchResults.style.display = 'block';
-            } else {
-                searchResults.innerHTML = `
-                    <div class="manual-search-no-results">
-                        <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;"></i>
-                        <p>No results found for "${query}"</p>
-                    </div>
-                `;
-                searchResults.style.display = 'block';
-            }
-        }
-        
-        // Show manual detail with animated lines
-        function showManualDetail(section) {
-            const detailTitle = document.getElementById('detail-title');
-            const detailContent = document.getElementById('detail-content');
-            const manualGrid = document.getElementById('manual-grid');
-            const manualDetail = document.getElementById('manual-detail');
-            
-            // Set content based on section
-            let title = section;
-            let content = '';
-            
-            switch(section) {
-                case 'Access Control':
-                    content = `
-                        <div class="animated-lines-container">
-                            <div class="line-box line-1">
-                                <div class="line-content">
-                                    <i class="fas fa-exclamation-circle line-icon"></i>
-                                    <span>Cash premises are Entry Restricted area.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-2">
-                                <div class="line-content">
-                                    <i class="fas fa-user-shield line-icon"></i>
-                                    <span>Only authorized personnel are allowed to enter these areas.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-3">
-                                <div class="line-content">
-                                    <i class="fas fa-ban line-icon"></i>
-                                    <span>Unauthorized access is strictly prohibited.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-4">
-                                <div class="line-content">
-                                    <i class="fas fa-gavel line-icon"></i>
-                                    <span>Violation may result in disciplinary action.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-5">
-                                <div class="line-content">
-                                    <i class="fas fa-clipboard-check line-icon"></i>
-                                    <span>All access must be logged in the visitor register.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-6">
-                                <div class="line-content">
-                                    <i class="fas fa-eye line-icon"></i>
-                                    <span>CCTV monitoring is active in all restricted areas.</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                case 'Cash Security':
-                    content = `
-                        <div class="animated-lines-container">
-                            <div class="line-box line-1">
-                                <div class="line-content">
-                                    <i class="fas fa-shield-alt line-icon"></i>
-                                    <span>Security guards must be posted at all entrances to the cash area.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-2">
-                                <div class="line-content">
-                                    <i class="fas fa-camera line-icon"></i>
-                                    <span>Multiple CCTV cameras must cover all angles of the cash handling area.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-3">
-                                <div class="line-content">
-                                    <i class="fas fa-money-bill-wave line-icon"></i>
-                                    <span>Cash counting must never be done outside designated secure areas.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-4">
-                                <div class="line-content">
-                                    <i class="fas fa-user-friends line-icon"></i>
-                                    <span>Dual control principle applies - no single person should handle cash alone.</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                case 'Vault Management':
-                    content = `
-                        <div class="animated-lines-container">
-                            <div class="line-box line-1">
-                                <div class="line-content">
-                                    <i class="fas fa-vault line-icon"></i>
-                                    <span>Main vault must have dual locking mechanism with separate key holders.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-2">
-                                <div class="line-content">
-                                    <i class="fas fa-chart-line line-icon"></i>
-                                    <span>Daily cash limits: Teller Counter - ৳5,00,000, Main Vault - ৳50,00,000</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-3">
-                                <div class="line-content">
-                                    <i class="fas fa-exchange-alt line-icon"></i>
-                                    <span>Excess cash must be transferred to main vault before end of business day.</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    break;
-                default:
-                    content = `
-                        <div class="animated-lines-container">
-                            <div class="line-box line-1">
-                                <div class="line-content">
-                                    <i class="fas fa-info-circle line-icon"></i>
-                                    <span>Detailed content for ${section.toLowerCase()} section is under development.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-2">
-                                <div class="line-content">
-                                    <i class="fas fa-tools line-icon"></i>
-                                    <span>This section will be updated with complete operational procedures.</span>
-                                </div>
-                            </div>
-                            
-                            <div class="line-box line-3">
-                                <div class="line-content">
-                                    <i class="fas fa-clock line-icon"></i>
-                                    <span>Please check back soon for the complete operational manual.</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-            }
-            
-            detailTitle.textContent = title;
-            detailContent.innerHTML = content;
-            
-            // Show detail, hide grid
-            manualGrid.style.display = 'none';
-            manualDetail.style.display = 'block';
-            
-            // Scroll to top of detail
-            manualDetail.scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // Hide manual detail
-        function hideManualDetail() {
-            document.getElementById('manual-grid').style.display = 'grid';
-            document.getElementById('manual-detail').style.display = 'none';
-            document.querySelector('.manual-search-input').value = '';
-            document.querySelector('.manual-clear-search').style.display = 'none';
-            document.querySelector('.manual-search-results').style.display = 'none';
-        }
-        
-        // Keyboard shortcuts
-        function handleKeyPress(event) {
-            // Escape key - go back
-            if (event.key === 'Escape') {
-                if (document.getElementById('comingSoonModal').style.display === 'flex') {
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                const comingSoonModal = document.getElementById('comingSoonModal');
+                const logoutModal = document.getElementById('logoutModal');
+                const adminPortal = document.getElementById('admin-portal');
+                const confirmationModal = document.getElementById('confirmation-modal');
+                
+                if (event.target === comingSoonModal) {
                     closeModal();
-                } else if (document.getElementById('logoutModal').style.display === 'flex') {
+                }
+                if (event.target === logoutModal) {
                     closeLogoutModal();
-                } else if (document.getElementById('admin-portal').style.display === 'flex') {
+                }
+                if (event.target === adminPortal) {
                     closeAdminPortal();
-                } else {
-                    showPage('main-portal');
+                }
+                if (event.target === confirmationModal) {
+                    hideConfirmation();
                 }
             }
             
-            // Ctrl+L for logout
-            if (event.ctrlKey && event.key === 'l') {
-                event.preventDefault();
-                logout();
+            // Auto-focus username field on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize user storage immediately
+                initUserStorage();
+                
+                // Check login status
+                checkLoginStatus();
+                
+                // Add demo credentials note for first-time users
+                setTimeout(() => {
+                    if (!sessionStorage.getItem('bblPortalFirstVisit')) {
+                        console.log('=== BBL Portal Demo Credentials ===');
+                        console.log('Admin: admin / BBL@2026');
+                        console.log('Manager: manager / Manager@2026');
+                        console.log('Staff: staff / Staff@2026');
+                        console.log('User: user / User@2026');
+                        console.log('===============================');
+                        sessionStorage.setItem('bblPortalFirstVisit', 'true');
+                    }
+                }, 1000);
+            });
+            
+            // Reset timer on user activity
+            function resetInactivityTimer() {
+                clearTimeout(window.inactivityTimer);
+                if (isLoggedIn) {
+                    const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
+                    const sessionTimeout = settings.sessionTimeout || 30;
+                    window.inactivityTimer = setTimeout(function() {
+                        showToast('Session Expired', 'You have been logged out due to inactivity', 'warning');
+                        confirmLogout();
+                    }, sessionTimeout * 60 * 1000);
+                }
             }
             
-            // Ctrl+A for admin (if admin)
-            if (event.ctrlKey && event.key === 'a' && isAdmin()) {
-                event.preventDefault();
-                showAdminPortal();
-            }
-        }
-        
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            const mobileNav = document.querySelector('.mobile-nav');
-            if (window.innerWidth <= 768) {
-                mobileNav.style.display = 'flex';
-            } else {
-                mobileNav.style.display = 'none';
-            }
-        });
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const comingSoonModal = document.getElementById('comingSoonModal');
-            const logoutModal = document.getElementById('logoutModal');
-            const adminPortal = document.getElementById('admin-portal');
-            const confirmationModal = document.getElementById('confirmation-modal');
+            // Reset timer on user activity
+            document.addEventListener('click', resetInactivityTimer);
+            document.addEventListener('keypress', resetInactivityTimer);
+            document.addEventListener('scroll', resetInactivityTimer);
+            document.addEventListener('mousemove', resetInactivityTimer);
             
-            if (event.target === comingSoonModal) {
-                closeModal();
+            // Initialize timer
+            resetInactivityTimer();
+            
+            // ========== DEBUG FUNCTIONS ==========
+            
+            // Debug function to check user status
+            function debugUserStatus() {
+                console.log('=== DEBUG USER STATUS ===');
+                console.log('Logged in:', sessionStorage.getItem('bblPortalLoggedIn'));
+                console.log('Username:', sessionStorage.getItem('bblPortalUsername'));
+                
+                const user = getCurrentUser();
+                console.log('Current user object:', user);
+                
+                if (user) {
+                    console.log('User role:', user.role);
+                    console.log('Is admin?', user.role === 'admin');
+                }
+                
+                const adminBtn = document.getElementById('admin-btn');
+                console.log('Admin button:', adminBtn);
+                console.log('Admin button display:', adminBtn ? adminBtn.style.display : 'Not found');
+                console.log('=== END DEBUG ===');
             }
-            if (event.target === logoutModal) {
-                closeLogoutModal();
+            
+            // Force show admin button for testing
+            function forceShowAdminButton() {
+                const adminBtn = document.getElementById('admin-btn');
+                if (adminBtn) {
+                    adminBtn.style.display = 'flex';
+                    adminBtn.classList.add('show');
+                    console.log('Admin button forced to show');
+                }
             }
-            if (event.target === adminPortal) {
-                closeAdminPortal();
-            }
-            if (event.target === confirmationModal) {
-                hideConfirmation();
-            }
-        }
-        
-        // Auto-focus username field on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('username').focus();
-            checkLoginStatus();
-        });
-        
-        // Auto logout after inactivity
-        let inactivityTimer;
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            if (isLoggedIn) {
-                const settings = JSON.parse(localStorage.getItem('bblSettings') || '{}');
-                const sessionTimeout = settings.sessionTimeout || 30;
-                inactivityTimer = setTimeout(function() {
-                    alert('Session expired due to inactivity. Please login again.');
-                    confirmLogout();
-                }, sessionTimeout * 60 * 1000);
-            }
-        }
-        
-        // Reset timer on user activity
-        document.addEventListener('click', resetInactivityTimer);
-        document.addEventListener('keypress', resetInactivityTimer);
-        document.addEventListener('scroll', resetInactivityTimer);
-        document.addEventListener('mousemove', resetInactivityTimer);
-        
-        // Initialize timer
-        resetInactivityTimer();
-    </script>
+        </script>
 </body>
 </html>
